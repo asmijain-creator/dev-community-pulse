@@ -40,6 +40,8 @@ Missing environment variables show a friendly "Almost there" setup page instead 
 ### 1. Supabase
 1. Create a free project at supabase.com.
 2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql`.
+   Upgrading a database created by the first version (with a `weekly_metrics` table)? Run
+   `supabase/reset.sql` instead. It drops the old tables and recreates everything, so existing data is lost.
 3. From **Project Settings → API**, copy the Project URL and the **service_role** key.
 
 ### 2. Keys
