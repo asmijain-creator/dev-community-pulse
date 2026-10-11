@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Finish setup · Community Pulse{% endblock %}
+{% block body %}
+<div class="page no-cover">
+  <div class="icon">🛠️</div>
+  <h1 class="title">Almost there</h1>
+  <p class="lede">The app is deployed, but it can't reach its database or AI yet.</p>
+  <div class="callout yellow"><div class="ci">🔑</div><div class="cb">
+    <b>Missing environment variables</b>
+    <div style="margin-top:6px">{% for m in missing %}<span class="tag red">{{ m }}</span> {% endfor %}</div>
+  </div></div>
+  <h2>How to fix</h2>
+  <ol class="prose" style="padding-left:1.4em">
+    <li>In Vercel, open the project → <b>Settings → Environment Variables</b>.</li>
+    <li>Add the variables above (see <code>.env.example</code> in the repo for the full list).</li>
+    <li>Open <b>Deployments → ⋯ → Redeploy</b>. Variables only apply to new deployments.</li>
+  </ol>
+  <p class="faint">Check progress any time at <a href="/api/health">/api/health</a>.</p>
+</div>
+{% endblock %}

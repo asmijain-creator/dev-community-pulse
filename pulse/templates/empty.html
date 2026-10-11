@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block crumbs %}<a href="/">📡 Community Pulse</a><i>/</i><span>🗞️ This week</span>{% endblock %}
+{% block body %}
+<div class="cover"></div>
+<div class="page">
+  <div class="icon">👋</div>
+  <h1 class="title">Welcome to Community Pulse</h1>
+  <p class="lede">Every Friday at 8:30 AM IST this page becomes a brief on what developers are struggling with in code review, CI/CD and workflow.</p>
+  {% if msg %}<div class="toast">ℹ️ {{ msg }}</div>{% endif %}
+
+  <div class="callout"><div class="ci">🗺️</div><div class="cb">
+    <b>How a Friday works</b>
+    <ol style="margin:.4em 0 0;padding-left:1.3em">
+      <li>Scan the 30-second summary.</li>
+      <li>See which pain points are rising or cooling down.</li>
+      <li>Open a pain point to read the real threads.</li>
+      <li>Take the checklist into Monday's sprint planning.</li>
+    </ol>
+  </div></div>
+
+  <h2>Getting started</h2>
+  <label class="todo"><input type="checkbox" checked disabled><span>Connect the database</span></label>
+  <label class="todo"><input type="checkbox" {% if topics %}checked{% endif %} disabled>
+    <span>Choose what to listen for: <a href="/topics">{{ topics | length }} active topic{{ '' if topics | length == 1 else 's' }}</a></span></label>
+  <label class="todo"><input type="checkbox" disabled><span>Generate the first brief</span></label>
+  <form method="post" action="/run" class="run-form" style="margin:14px 0 0 26px"><button class="btn">▶ Generate first brief</button></form>
+  <p class="faint" style="margin-left:26px">Takes about a minute. Collects the last 14 days, so trends work from day one.</p>
+</div>
+{% endblock %}

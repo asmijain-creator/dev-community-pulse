@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Pain points · Community Pulse{% endblock %}
+{% block crumbs %}<a href="/">📡 Community Pulse</a><i>/</i><span>🔥 Pain points</span>{% endblock %}
+{% block body %}
+<div class="page no-cover wide">
+  <div class="icon">🔥</div>
+  <h1 class="title">Pain points</h1>
+  <p class="lede">Every problem developers raised{% if digest %} in the week ending {{ digest.period_end }}{% endif %}, labelled by Gemini and counted in SQL. Open one to read the threads behind it.</p>
+
+  <div class="views" id="views">
+    <button class="on" data-view="all">☰ All</button>
+    <button data-view="rising">📈 Rising</button>
+    <button data-view="new">🆕 New</button>
+    <button data-view="open">🧭 Unresolved</button>
+    <input type="search" id="q" placeholder="Search…" aria-label="Search pain points">
+  </div>
+  {% include "_table.html" %}
+  <p class="faint" id="count"></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const rows = [...document.querySelectorAll('#db tbody tr[data-trend]')];
+  let view = 'all';
+  const apply = () => {
+    const q = document.getElementById('q').value.trim().toLowerCase(); let n = 0;
+    rows.forEach(r => {
+      const t = r.dataset.trend;
+      const ok = (view === 'all' || (view === 'rising' && t === 'rising') || (view === 'new' && t.startsWith('new'))
+                 || (view === 'open' && +r.dataset.unresolved > 0)) && (!q || r.dataset.text.includes(q));
+      r.style.display = ok ? '' : 'none'; n += ok;
+    });
+    document.getElementById('count').textContent = rows.length ? `${n} of ${rows.length}` : '';
+  };
+  document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#views button').forEach(x => x.classList.toggle('on', x === b)); view = b.dataset.view; apply();
+  }));
+  document.getElementById('q').addEventListener('input', apply);
+  apply();
+})();
+</script>
+{% endblock %}

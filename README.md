@@ -20,13 +20,20 @@ Every Friday 03:00 UTC (8:30 AM IST) Vercel Cron calls `/api/run-digest`:
    3 actions). Code appends the exact numbers table.
 5. **Deliver.** The brief is saved to Supabase, emailed via Resend and shown on the dashboard.
 
-| Path | What |
-|---|---|
-| `/` | Latest brief, trend sparklines, run log, **Run now** |
-| `/history`, `/digest/<date>` | Past briefs |
-| `/topics` | Edit categories and keywords (password) |
-| `/api/run-digest` | Cron endpoint (needs `CRON_SECRET`) |
-| `/api/health` | Shows which settings are missing |
+## Dashboard (Notion-style, ordered by Sumit's Friday journey)
+
+| Page | Journey step | What's on it |
+|---|---|---|
+| 🗞️ **This week** `/` | Scan → see what's moving → act | ⚡ 30-second summary · 📊 board of Rising / New / Cooling down · 🔥 top pain points · 🧭 opportunities · 🛡️ objections · ✅ sprint checklist (tick off, copy) · 🔢 all numbers |
+| 🔥 **Pain points** `/pain-points` | Dig into the evidence | Database view with All / Rising / New / Unresolved tabs and search |
+| ↳ one pain point `/pain-point?name=…` | Check it's real | Mentions by week and the actual threads (source, resolved?, votes, comments) |
+| 🗂️ **Archive** `/archive` | Compare weeks | Every past brief with source and email status |
+| 🏷️ **Topics & keywords** `/topics` | Maintain | Edit categories and keywords; needs `ADMIN_PASSWORD` |
+| ⚙️ **Runs & health** `/runs` | Operate | Setup checklist, run log with errors, **Generate brief now** |
+| `/api/run-digest` | — | Cron endpoint (needs `CRON_SECRET`) |
+| `/api/health` | — | JSON: which settings are missing |
+
+Missing environment variables show a friendly "Almost there" setup page instead of an error.
 
 ## Setup
 

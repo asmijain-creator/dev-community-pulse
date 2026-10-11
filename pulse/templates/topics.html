@@ -1,27 +1,56 @@
 {% extends "base.html" %}
 {% block title %}Topics · Community Pulse{% endblock %}
-{% block content %}
-<h1>Monitored topics</h1>
-<p class="muted">Changes apply to the next run. Turning a topic off keeps its history; topics are never deleted.
-Separate keywords with commas. Specific phrases ("flaky tests") work better than single words ("tests").</p>
+{% block crumbs %}<a href="/">📡 Community Pulse</a><i>/</i><span>🏷️ Topics &amp; keywords</span>{% endblock %}
+{% block body %}
+<div class="page no-cover wide">
+  <div class="icon">🏷️</div>
+  <h1 class="title">Topics &amp; keywords</h1>
+  <p class="lede">What the radar listens for. Changes apply to the next brief, with no code changes needed.</p>
+  {% if msg %}<div class="toast">✨ {{ msg }}</div>{% endif %}
 
-{% for t in topics %}
-<form class="card" method="post" action="/topics/{{ t.id }}">
-  <h3>{{ t.category }} {% if not t.active %}<span class="pill">off</span>{% endif %}</h3>
-  <label>Description (helps the AI choose the right category)</label>
-  <input type="text" name="description" value="{{ t.description }}">
-  <label>Keywords</label>
-  <textarea name="keywords" rows="2">{{ t.keywords | join(", ") }}</textarea>
-  <label><input type="checkbox" name="active" {% if t.active %}checked{% endif %}> Active</label>
-  <button class="btn" style="margin-top:10px">Save</button>
-</form>
-{% endfor %}
+  <div class="callout blue"><div class="ci">💡</div><div class="cb">
+    Specific phrases work best: <span class="tag">flaky tests</span> finds real pain, while <span class="tag">tests</span> finds everything.
+    Turning a topic off keeps its history; topics are never deleted.
+  </div></div>
 
-<form class="card" method="post" action="/topics">
-  <h3>Add a topic</h3>
-  <label>Category</label><input type="text" name="category" required>
-  <label>Description</label><input type="text" name="description">
-  <label>Keywords</label><textarea name="keywords" rows="2" required></textarea>
-  <button class="btn" style="margin-top:10px">Add topic</button>
-</form>
+  <div class="dbwrap"><table class="db">
+    <thead><tr><th><span class="thi">Aa</span>Topic</th><th><span class="thi">≡</span>Keywords</th><th><span class="thi">◉</span>Status</th></tr></thead>
+    <tbody>
+    {% for t in topics %}
+    <tr>
+      <td style="min-width:200px"><b style="font-weight:500">{{ t.category }}</b>
+        {% if t.description %}<div class="faint">{{ t.description }}</div>{% endif %}</td>
+      <td>{% for k in t.keywords %}<span class="tag {{ t.category | tag_color }}">{{ k }}</span> {% endfor %}</td>
+      <td><span class="tag {{ 'green' if t.active else 'gray' }}">{{ 'Active' if t.active else 'Off' }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3" class="faint">No topics yet. Add the first one below.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  <h2>✏️ Edit</h2>
+  {% for t in topics %}
+  <details class="toggle">
+    <summary>{{ t.category }} {% if not t.active %}<span class="tag gray">Off</span>{% endif %}</summary>
+    <form class="inner" method="post" action="/topics/{{ t.id }}">
+      <label class="f">Description (helps the AI pick the right category)</label>
+      <input type="text" name="description" value="{{ t.description }}">
+      <label class="f">Keywords, comma separated</label>
+      <textarea name="keywords" rows="2">{{ t.keywords | join(", ") }}</textarea>
+      <label class="todo" style="margin-top:8px"><input type="checkbox" name="active" {% if t.active %}checked{% endif %}><span>Active</span></label>
+      <button class="btn" style="margin-top:6px">Save changes</button>
+    </form>
+  </details>
+  {% endfor %}
+  <details class="toggle" {% if not topics %}open{% endif %}>
+    <summary>➕ New topic</summary>
+    <form class="inner" method="post" action="/topics">
+      <label class="f">Topic name</label><input type="text" name="category" required placeholder="e.g. Security review">
+      <label class="f">Description</label><input type="text" name="description" placeholder="What kind of pain belongs here?">
+      <label class="f">Keywords, comma separated</label><textarea name="keywords" rows="2" required placeholder="secret scanning, dependency review"></textarea>
+      <button class="btn" style="margin-top:10px">Add topic</button>
+    </form>
+  </details>
+</div>
 {% endblock %}

@@ -127,3 +127,13 @@ def test_safe_markdown_blocks_html_and_js_links():
     assert "<script>" not in out
     assert "javascript:" not in out
     assert 'href="https://a.com"' in out
+
+
+# ---------- brief sections ----------
+
+def test_split_sections_and_actions():
+    from pulse.brief import list_items, split_sections
+    md = "# T\n**Week**\n\n⚠️ **github** down\n\n## TL;DR\n- a\n\n## Suggested actions for sprint planning\n1. Do **x**\n2. Do y\n\n## Surprise\ntext"
+    s = split_sections(md)
+    assert s["tldr"] == "- a" and "github" in s["warnings"] and "Surprise" in s["extra"]
+    assert list_items(s["actions"]) == ["Do <strong>x</strong>", "Do y"]

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Runs & health · Community Pulse{% endblock %}
+{% block crumbs %}<a href="/">📡 Community Pulse</a><i>/</i><span>⚙️ Runs &amp; health</span>{% endblock %}
+{% block body %}
+<div class="page no-cover wide">
+  <div class="icon">⚙️</div>
+  <h1 class="title">Runs &amp; health</h1>
+  <p class="lede">Is the Friday machine working? Setup status and the log of every run.</p>
+  {% if msg %}<div class="toast">ℹ️ {{ msg }}</div>{% endif %}
+
+  <h2>🩺 Setup</h2>
+  <div class="checks">
+    {% for c in checks %}
+    <div class="check">
+      <span class="s">{{ '✅' if c.ok else ('❌' if c.need else '⚪') }}</span>
+      <span>{{ c.name }} {% if not c.need %}<span class="tag gray">optional</span>{% endif %}</span>
+      <small>{{ c.hint }}</small>
+    </div>
+    {% endfor %}
+  </div>
+  <form method="post" action="/run" class="run-form" style="margin-top:14px"><button class="btn">▶ Generate brief now</button></form>
+
+  <h2>📜 Run log</h2>
+  <div class="dbwrap"><table class="db">
+    <thead><tr><th><span class="thi">🕐</span>Started (UTC)</th><th><span class="thi">◉</span>Trigger</th><th><span class="thi">◉</span>Status</th>
+      <th class="n"><span class="thi">#</span>Collected</th><th class="n"><span class="thi">#</span>Labelled</th><th class="n"><span class="thi">⏱</span>Time</th></tr></thead>
+    <tbody>
+    {% for r in runs %}{% set s = r.stats or {} %}
+    <tr>
+      <td>{{ r.started_at[:16] | replace("T", " ") }}</td>
+      <td><span class="tag {{ 'purple' if r.trigger == 'cron' else 'blue' }}">{{ r.trigger }}</span></td>
+      <td><span class="tag {{ {'success':'green','failed':'red','running':'yellow'}.get(r.status, 'gray') }}">{{ r.status }}</span></td>
+      <td class="n">{{ s.posts_collected if s.posts_collected is defined else '—' }}</td>
+      <td class="n">{{ s.newly_classified if s.newly_classified is defined else '—' }}</td>
+      <td class="n">{{ (s.seconds ~ 's') if s.seconds is defined else '—' }}</td>
+    </tr>
+    {% if r.error %}<tr><td colspan="6" class="faint">↳ {{ r.error[:240] }}</td></tr>{% endif %}
+    {% else %}
+    <tr><td colspan="6" class="faint">No runs yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

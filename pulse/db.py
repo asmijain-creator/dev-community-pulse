@@ -132,8 +132,14 @@ class Store:
         return (self.sb.table("digest_metrics").select("*").eq("period_end", period_end)
                 .order("mentions", desc=True).execute().data)
 
+    def pain_point_posts(self, pain_point: str, limit: int = 40) -> list[dict]:
+        return (self.sb.table("posts")
+                .select("source,title,url,summary,is_unresolved,sentiment,score,comments,created_at,category")
+                .eq("pain_point", pain_point).eq("relevant", True)
+                .order("created_at", desc=True).limit(limit).execute().data)
+
     def metric_history(self, pain_points: list[str], limit_rows: int = 500) -> list[dict]:
         if not pain_points:
             return []
-        return (self.sb.table("digest_metrics").select("period_end,pain_point,mentions")
+        return (self.sb.table("digest_metrics").select("period_end,pain_point,category,mentions,trend,unresolved")
                 .in_("pain_point", pain_points).order("period_end").limit(limit_rows).execute().data)
