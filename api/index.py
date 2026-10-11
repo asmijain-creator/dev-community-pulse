@@ -1,257 +1,359 @@
-"""FastAPI app served by Vercel. Pages follow Sumit's Friday journey:
-This week (scan -> what's moving -> evidence -> act) · Pain points (dig in) · Archive (compare)
-· Topics (maintain) · Runs & health (operate)."""
+"""FastAPI app — single Vercel function handles every route.
+
+The /api/run-digest endpoint is hit by Vercel Cron every Friday 03:00 UTC
+(08:30 IST). It can also be invoked manually from the dashboard via
+the /run-now button (admin-password protected).
+"""
+import asyncio
+import base64
+import os
 import secrets
 import sys
-import zlib
-from pathlib import Path
-from urllib.parse import quote
+from datetime import datetime, timedelta, timezone
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+# Make project root importable so `from lib.* import ...` works on Vercel.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request  # noqa: E402
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse  # noqa: E402
-from fastapi.security import HTTPBasic, HTTPBasicCredentials  # noqa: E402
-from fastapi.templating import Jinja2Templates  # noqa: E402
+import markdown as md
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 
-from pulse.brief import list_items, split_sections  # noqa: E402
-from pulse.collector import normalize_keywords  # noqa: E402
-from pulse.config import get_settings  # noqa: E402
-from pulse.db import Store  # noqa: E402
-from pulse.emailer import safe_markdown  # noqa: E402
-from pulse.pipeline import ConfigError, run_digest  # noqa: E402
-from pulse.writer import TREND_ICON  # noqa: E402
+from lib import views as V
+from lib.collectors import collect
+from lib.db import db
+from lib.gemini_brief import write_brief
+from lib.gemini_tag import tag_all
+from lib.metrics import aggregate, compute_trends, week_start_for
 
-app = FastAPI(title="Developer Community Pulse", docs_url=None, redoc_url=None)
-templates = Jinja2Templates(directory=str(ROOT / "pulse" / "templates"))
-basic = HTTPBasic()
+try:
+    import resend
+except ImportError:
+    resend = None
 
-# Notion's tag palette. Trend colours read as "needs attention" (red) to "calming down" (green).
-TAG_COLORS = ["gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"]
-TREND_COLOR = {"rising": "red", "new": "blue", "newly tracked": "purple", "steady": "gray",
-               "falling": "green", "gone quiet": "brown"}
-SOURCE_LABEL = {"hackernews": ("Hacker News", "orange"), "stackoverflow": ("Stack Overflow", "yellow"),
-                "github": ("GitHub", "gray")}
+app = FastAPI(title="Dev Community Pulse")
+
+REQUIRED_ENV = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY"]
+TAG_BATCH_SIZE = 15
 
 
-def tag_color(text: str) -> str:
-    """Stable colour per category name, like Notion select options."""
-    return TAG_COLORS[1 + zlib.crc32(str(text).encode()) % (len(TAG_COLORS) - 1)]
+def _env_check() -> tuple[bool, list[str]]:
+    missing = [k for k in REQUIRED_ENV if not os.getenv(k)]
+    return (len(missing) == 0, missing)
 
 
-ACRONYMS = {w: w.upper() for w in ("ai", "pr", "ci", "cd", "ci/cd", "api", "ide", "llm", "sast", "qa", "ui", "ux", "sla")}
-ACRONYMS.update({w + "s": w.upper() + "s" for w in ("pr", "api", "llm", "sla", "ide")})
+def _check_cron_auth(req: Request) -> None:
+    """Vercel Cron sends `authorization: Bearer <CRON_SECRET>` when the env
+    var is set. If no secret is configured we allow (dev-only)."""
+    secret = os.getenv("CRON_SECRET")
+    if not secret:
+        return
+    header = req.headers.get("authorization", "")
+    expected = f"Bearer {secret}"
+    if not secrets.compare_digest(header, expected):
+        raise HTTPException(401, "unauthorized")
 
 
-def label(text: str) -> str:
-    """'review latency on large prs' -> 'Review latency on large PRs' (stored labels are lowercase)."""
-    words = [ACRONYMS.get(w.lower(), w) for w in str(text).split(" ")]
-    out = " ".join(words)
-    return out[:1].upper() + out[1:]
-
-
-templates.env.filters["label"] = label
-templates.env.filters["md"] = safe_markdown
-templates.env.filters["tag_color"] = tag_color
-templates.env.globals.update(trend_icon=TREND_ICON, trend_color=TREND_COLOR, source_label=SOURCE_LABEL,
-                             quote=quote)
-
-
-class NotConfigured(Exception):
-    def __init__(self, missing: list[str]):
-        self.missing = missing
-
-
-def store() -> Store:
-    s = get_settings()
-    if missing := s.missing():
-        raise NotConfigured(missing)
-    return Store(s.supabase_url, s.supabase_service_key)
-
-
-@app.exception_handler(NotConfigured)
-def not_configured(request: Request, exc: NotConfigured):
-    return templates.TemplateResponse(request, "setup.html", {"missing": exc.missing, "nav": ""}, status_code=503)
-
-
-def require_admin(creds: HTTPBasicCredentials = Depends(basic)) -> None:
-    password = get_settings().admin_password
-    if not password:
-        raise HTTPException(403, "Set ADMIN_PASSWORD to enable admin pages")
-    if not secrets.compare_digest(creds.password.encode(), password.encode()):
-        raise HTTPException(401, "Wrong password", headers={"WWW-Authenticate": "Basic"})
-
-
-def page(request: Request, name: str, nav: str, **ctx):
-    return templates.TemplateResponse(request, name, {"nav": nav, "msg": request.query_params.get("msg", ""), **ctx})
-
-
-def brief_context(db: Store, digest: dict) -> dict:
-    metrics = db.digest_metrics(digest["period_end"])
-    active = [m for m in metrics if m["mentions"] > 0]
-    sections = split_sections(digest["content_md"])
-    board = {
-        "rising": [m for m in active if m["trend"] == "rising"][:4],
-        "new": [m for m in active if m["trend"] in ("new", "newly tracked")][:4],
-        "falling": [m for m in metrics if m["trend"] in ("falling", "gone quiet")][:4],
-    }
-    return {
-        "digest": digest, "metrics": metrics, "sections": sections, "board": board,
-        "actions": list_items(sections.get("actions", "")),
-        "sources": (digest.get("stats") or {}).get("source_status", {}),
-    }
-
-
-# ---------- 1. This week: the Friday brief ----------
-
-@app.get("/", response_class=HTMLResponse)
-def this_week(request: Request):
-    db = store()
-    digest = db.latest_digest()
-    if not digest:
-        return page(request, "empty.html", "week", topics=db.active_topics())
-    return page(request, "brief.html", "week", **brief_context(db, digest), latest=True)
-
-
-# ---------- 2. Pain points: dig into the evidence ----------
-
-@app.get("/pain-points", response_class=HTMLResponse)
-def pain_points(request: Request):
-    db = store()
-    digest = db.latest_digest()
-    metrics = db.digest_metrics(digest["period_end"]) if digest else []
-    return page(request, "pain_points.html", "points", digest=digest, metrics=metrics)
-
-
-@app.get("/pain-point", response_class=HTMLResponse)
-def pain_point(request: Request, name: str):
-    db = store()
-    history = db.metric_history([name])
-    posts = db.pain_point_posts(name)
-    if not history and not posts:
-        raise HTTPException(404, "Unknown pain point")
-    latest = history[-1] if history else None
-    peak = max((h["mentions"] for h in history), default=1) or 1
-    return page(request, "pain_point.html", "points", point=name, history=history[-12:], posts=posts,
-                latest=latest, peak=peak, category=(latest or posts[0])["category"])
-
-
-# ---------- 3. Archive: compare with earlier weeks ----------
-
-@app.get("/archive", response_class=HTMLResponse)
-def archive(request: Request):
-    return page(request, "archive.html", "archive", digests=store().list_digests())
-
-
-@app.get("/history")
-def history_redirect():
-    return RedirectResponse("/archive", 301)
-
-
-@app.get("/digest/{period_end}", response_class=HTMLResponse)
-def digest_page(request: Request, period_end: str):
-    db = store()
-    digest = db.get_digest(period_end)
-    if not digest:
-        raise HTTPException(404, "No brief for that date")
-    return page(request, "brief.html", "archive", **brief_context(db, digest), latest=False)
-
-
-# ---------- 4. Topics: keep the radar pointed at the right things ----------
-
-@app.get("/topics", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
-def topics_page(request: Request):
-    return page(request, "topics.html", "topics", topics=store().all_topics())
-
-
-def _keywords(raw: str) -> list[str]:
-    return normalize_keywords(raw.replace("\n", ",").split(","))
-
-
-@app.post("/topics", dependencies=[Depends(require_admin)])
-def add_topic(category: str = Form(...), description: str = Form(""), keywords: str = Form(...)):
-    category, kws = " ".join(category.split()), _keywords(keywords)
-    if not category or not kws:
-        return RedirectResponse("/topics?msg=" + quote("Category and at least one keyword are required"), 303)
-    db = store()
-    if any(t["category"].lower() == category.lower() for t in db.all_topics()):
-        return RedirectResponse("/topics?msg=" + quote(f"'{category}' already exists"), 303)
-    db.add_topic(category, description.strip(), kws)
-    return RedirectResponse("/topics?msg=" + quote(f"Added '{category}'"), 303)
-
-
-@app.post("/topics/{topic_id}", dependencies=[Depends(require_admin)])
-def update_topic(topic_id: int, description: str = Form(""), keywords: str = Form(...),
-                 active: str = Form("off")):
-    kws = _keywords(keywords)
-    if not kws:
-        return RedirectResponse("/topics?msg=" + quote("A topic needs at least one keyword"), 303)
-    # Topics are deactivated, never deleted, so their trend history survives.
-    store().update_topic(topic_id, description=description.strip(), keywords=kws, active=active == "on")
-    return RedirectResponse("/topics?msg=" + quote("Saved"), 303)
-
-
-# ---------- 5. Runs & health: is the machine working? ----------
-
-def health_checks() -> list[dict]:
-    s = get_settings()
-    return [
-        {"name": "Supabase", "ok": bool(s.supabase_url and s.supabase_service_key), "need": True,
-         "hint": "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"},
-        {"name": "Gemini Flash", "ok": bool(s.gemini_api_key), "need": True, "hint": f"GEMINI_API_KEY · {s.gemini_model}"},
-        {"name": "Friday cron", "ok": bool(s.cron_secret), "need": True, "hint": "CRON_SECRET"},
-        {"name": "Admin password", "ok": bool(s.admin_password), "need": True, "hint": "ADMIN_PASSWORD"},
-        {"name": "Email delivery", "ok": bool(s.resend_api_key and s.digest_email_to), "need": False,
-         "hint": "RESEND_API_KEY and DIGEST_EMAIL_TO"},
-        {"name": "GitHub token", "ok": bool(s.github_token), "need": False, "hint": "GITHUB_TOKEN: 3x search rate limit"},
-        {"name": "Stack Exchange key", "ok": bool(s.stackexchange_key), "need": False,
-         "hint": "STACKEXCHANGE_KEY: 10,000 instead of 300 requests/day"},
-    ]
-
-
-@app.get("/runs", response_class=HTMLResponse)
-def runs_page(request: Request):
-    return page(request, "runs.html", "runs", runs=store().recent_runs(20), checks=health_checks())
-
-
-@app.post("/run", dependencies=[Depends(require_admin)])
-async def run_now():
+def _check_admin(req: Request) -> None:
+    pw = os.getenv("ADMIN_PASSWORD")
+    if not pw:
+        raise HTTPException(500, "ADMIN_PASSWORD env var is not set on the server")
+    header = req.headers.get("authorization", "")
+    if not header.startswith("Basic "):
+        raise HTTPException(
+            401, "auth required",
+            headers={"WWW-Authenticate": 'Basic realm="admin"'},
+        )
     try:
-        result = await run_digest("manual")
-    except ConfigError as exc:
-        return RedirectResponse("/runs?msg=" + quote(str(exc)), 303)
-    except Exception as exc:
-        return RedirectResponse("/runs?msg=" + quote(f"Run failed: {exc}"[:300]), 303)
-    if result["status"] == "skipped":
-        return RedirectResponse("/runs?msg=" + quote(f"Skipped: {result['reason']}"), 303)
-    return RedirectResponse("/?msg=" + quote(f"Fresh brief generated in {result.get('seconds')}s"), 303)
+        decoded = base64.b64decode(header[6:]).decode()
+        _, got = decoded.split(":", 1)
+    except Exception:
+        raise HTTPException(401, "bad auth header",
+                            headers={"WWW-Authenticate": 'Basic realm="admin"'})
+    if not secrets.compare_digest(got, pw):
+        raise HTTPException(401, "bad credentials",
+                            headers={"WWW-Authenticate": 'Basic realm="admin"'})
 
 
-# ---------- cron + health API ----------
-
-@app.get("/api/run-digest")
-async def cron_run(request: Request):
-    secret = get_settings().cron_secret
-    # Vercel Cron sends "Authorization: Bearer <CRON_SECRET>" automatically when CRON_SECRET is set.
-    if not secret or not secrets.compare_digest(request.headers.get("authorization", ""), f"Bearer {secret}"):
-        raise HTTPException(401, "Unauthorized")
-    try:
-        return await run_digest("cron")
-    except ConfigError as exc:
-        return JSONResponse({"status": "failed", "error": str(exc)}, 500)
-    except Exception as exc:
-        return JSONResponse({"status": "failed", "error": f"{exc.__class__.__name__}: {exc}"[:500]}, 500)
-
+# ---------- public ----------
 
 @app.get("/api/health")
 def health():
-    s = get_settings()
+    ok, missing = _env_check()
+    return {"ok": ok, "missing": missing, "resend": resend is not None}
+
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    sb = db()
+    latest = sb.table("digests").select("*").order("week_start", desc=True).limit(1).execute()
+    metrics_rows: list[dict] = []
+    ws = None
+    brief_md = "_No brief yet. Click **Run now** above to generate the first one._"
+    if latest.data:
+        ws = latest.data[0]["week_start"]
+        brief_md = latest.data[0]["content_md"] or brief_md
+        m = sb.table("weekly_metrics").select("*").eq("week_start", ws) \
+            .order("mention_count", desc=True).execute()
+        metrics_rows = m.data or []
+    history = sb.table("digests").select("week_start") \
+        .order("week_start", desc=True).limit(12).execute()
+    return V.dashboard(md.markdown(brief_md), metrics_rows, history.data or [], ws)
+
+
+@app.get("/history/{week}", response_class=HTMLResponse)
+def history_item(week: str):
+    sb = db()
+    r = sb.table("digests").select("*").eq("week_start", week).limit(1).execute()
+    if not r.data:
+        raise HTTPException(404, "no brief for that week")
+    m = sb.table("weekly_metrics").select("*").eq("week_start", week) \
+        .order("mention_count", desc=True).execute()
+    hist = sb.table("digests").select("week_start") \
+        .order("week_start", desc=True).limit(12).execute()
+    return V.dashboard(md.markdown(r.data[0]["content_md"] or ""),
+                       m.data or [], hist.data or [], week)
+
+
+# ---------- admin ----------
+
+@app.get("/topics", response_class=HTMLResponse)
+def topics_get(request: Request):
+    _check_admin(request)
+    sb = db()
+    rows = sb.table("topics").select("*").order("id").execute()
+    return V.topics_page(rows.data or [])
+
+
+@app.post("/topics/add")
+def topics_add(request: Request, category: str = Form(...), keywords: str = Form(...)):
+    _check_admin(request)
+    kws = [k.strip() for k in keywords.split(",") if k.strip()]
+    if not category.strip() or not kws:
+        raise HTTPException(400, "category + at least one keyword required")
+    db().table("topics").insert(
+        {"category": category.strip(), "keywords": kws, "active": True}
+    ).execute()
+    return RedirectResponse("/topics", status_code=303)
+
+
+@app.post("/topics/toggle/{tid}")
+def topics_toggle(request: Request, tid: int):
+    _check_admin(request)
+    sb = db()
+    r = sb.table("topics").select("active").eq("id", tid).limit(1).execute()
+    cur = r.data[0]["active"] if r.data else True
+    sb.table("topics").update({"active": not cur}).eq("id", tid).execute()
+    return RedirectResponse("/topics", status_code=303)
+
+
+@app.post("/run-now")
+def run_now(request: Request):
+    _check_admin(request)
+    return _do_run(days_back=7)
+
+
+# ---------- cron ----------
+
+@app.get("/api/run-digest")
+def api_run_digest(request: Request):
+    _check_cron_auth(request)
+    # First-run trick: no prior weekly_metrics → pull 14 days so we can
+    # split into "last week" + "this week" and show real trends on day 1.
+    prev = db().table("weekly_metrics").select("week_start").limit(1).execute()
+    days = 7 if prev.data else 14
+    return _do_run(days_back=days)
+
+
+# ---------- pipeline ----------
+
+def _do_run(days_back: int = 7) -> dict:
+    sb = db()
+    today = datetime.now(timezone.utc).date()
+    this_week = week_start_for(today)
+    last_week = this_week - timedelta(days=7)
+
+    topics_rows = sb.table("topics").select("*").eq("active", True).execute().data or []
+    if not topics_rows:
+        return {"ok": False, "error": "no active topics — seed via supabase/schema.sql or /topics"}
+
+    topics = [
+        {"id": t["id"], "category": t["category"], "keywords": t["keywords"]}
+        for t in topics_rows
+    ]
+
+    # 1. Collect from live sources (async parallel across keywords × sources)
+    posts = asyncio.run(collect(topics, days_back=days_back))
+
+    # 2. Upsert raw posts (dedupe by PK)
+    if posts:
+        rows = [{
+            "id": p["id"],
+            "source": p["source"],
+            "title": (p.get("title") or "")[:500],
+            "body": (p.get("body") or "")[:5000],
+            "url": p["url"],
+            "score": int(p.get("score") or 0),
+            "comments": int(p.get("comments") or 0),
+            "created_at": p["created_at"],
+            "topic_id": p["topic_id"],
+        } for p in posts]
+        # supabase-py accepts a list for upsert
+        sb.table("posts").upsert(rows).execute()
+
+    # 3. Find untagged posts within the window
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).isoformat()
+    MAX_TAG = 90
+    untagged = sb.table("posts") \
+        .select("id,title,body,created_at,topic_id,score,comments,url") \
+        .is_("pain_point", "null") \
+        .gte("created_at", cutoff) \
+        .order("score", desc=True) \
+        .limit(MAX_TAG) \
+        .execute().data or []
+
+    categories = [t["category"] for t in topics_rows] + ["Other"]
+    prior = sb.table("posts").select("pain_point") \
+        .not_.is_("pain_point", "null").limit(300).execute().data or []
+    prior_labels = sorted({p["pain_point"] for p in prior if p.get("pain_point")})
+
+    # 4. Tag — all batches in parallel (asyncio.gather w/ semaphore)
+    tagged = 0
+    if untagged:
+        tags = asyncio.run(tag_all(untagged, categories, prior_labels,
+                                   batch_size=12, concurrency=5))
+        tag_by_id = {t["post_id"]: t for t in tags if t.get("post_id")}
+        # Build upsert rows (need full row data since upsert replaces)
+        full_untagged = {p["id"]: p for p in untagged}
+        update_rows = []
+        for pid, p in full_untagged.items():
+            t = tag_by_id.get(pid)
+            if not t:
+                continue
+            created = datetime.fromisoformat(
+                p["created_at"].replace("Z", "+00:00")
+            ).date()
+            ws = week_start_for(created).isoformat()
+            row = {
+                "id": pid,
+                "source": pid.split(":", 1)[0],
+                "title": p.get("title") or "",
+                "body": p.get("body") or "",
+                "url": p.get("url"),
+                "score": p.get("score") or 0,
+                "comments": p.get("comments") or 0,
+                "created_at": p["created_at"],
+                "topic_id": p.get("topic_id"),
+            }
+            if t.get("relevant", True):
+                row.update({
+                    "pain_point": (t.get("pain_point") or "").strip().lower()[:100] or None,
+                    "category": (t.get("category") or "Other")[:60],
+                    "sentiment": t.get("sentiment"),
+                    "is_unresolved": bool(t.get("is_unresolved")),
+                    "week_start": ws,
+                })
+            else:
+                row.update({
+                    "pain_point": None, "category": None,
+                    "sentiment": t.get("sentiment"),
+                    "is_unresolved": False, "week_start": None,
+                })
+            update_rows.append(row)
+            tagged += 1
+        # Single batched upsert
+        if update_rows:
+            sb.table("posts").upsert(update_rows).execute()
+
+    # 5. Aggregate THIS week + LAST week from DB
+    this_rows = sb.table("posts") \
+        .select("pain_point,category,is_unresolved,score,comments,title,url") \
+        .eq("week_start", this_week.isoformat()).execute().data or []
+    last_rows = sb.table("posts").select("pain_point") \
+        .eq("week_start", last_week.isoformat()).execute().data or []
+
+    prev_counts: dict[str, int] = {}
+    for r in last_rows:
+        pp = r.get("pain_point")
+        if pp:
+            prev_counts[pp] = prev_counts.get(pp, 0) + 1
+
+    agg = aggregate(this_rows)
+    metrics = compute_trends(agg, prev_counts)
+
+    # 6. Overwrite this week's weekly_metrics table
+    sb.table("weekly_metrics").delete().eq("week_start", this_week.isoformat()).execute()
+    if metrics:
+        metric_rows = [{
+            "week_start": this_week.isoformat(),
+            "pain_point": m["pain_point"],
+            "category": m["category"],
+            "mention_count": m["count"],
+            "engagement": m["engagement"],
+            "unresolved_count": m["unresolved_count"],
+        } for m in metrics]
+        sb.table("weekly_metrics").upsert(metric_rows).execute()
+
+    if not metrics:
+        return {
+            "ok": True,
+            "note": "no relevant tagged posts for this week — try again with more keywords or wider window",
+            "collected": len(posts),
+            "tagged": tagged,
+        }
+
+    # 7. Build evidence examples + write brief with Gemini
+    examples = {}
+    for m in metrics[:8]:
+        examples[m["pain_point"]] = [
+            {"title": p.get("title") or "", "url": p.get("url")}
+            for p in m["posts"][:3]
+        ]
+    brief = write_brief(metrics[:12], examples)
+
+    # 8. Persist brief
+    sb.table("digests").upsert({
+        "week_start": this_week.isoformat(),
+        "content_md": brief,
+    }).execute()
+
+    # 9. Email (non-fatal if it fails)
+    email_status = "skipped"
+    try:
+        email_status = _send_email(brief, this_week.isoformat())
+    except Exception as e:
+        print(f"[run] email error: {e}")
+        email_status = f"failed: {e}"
+
     return {
-        "ok": not s.missing(),
-        "missing": s.missing(),
-        "email_configured": bool(s.resend_api_key and s.digest_email_to),
-        "cron_secret_set": bool(s.cron_secret),
-        "github_token_set": bool(s.github_token),
-        "model": s.gemini_model,
+        "ok": True,
+        "week": this_week.isoformat(),
+        "days_back": days_back,
+        "collected": len(posts),
+        "tagged": tagged,
+        "pain_points": len(metrics),
+        "email": email_status,
     }
+
+
+def _send_email(brief_md: str, week: str) -> str:
+    key = os.getenv("RESEND_API_KEY")
+    to = os.getenv("DIGEST_EMAIL_TO")
+    if not (key and to):
+        return "no RESEND_API_KEY or DIGEST_EMAIL_TO"
+    if resend is None:
+        return "resend package missing"
+    resend.api_key = key
+    sender = os.getenv("RESEND_FROM", "onboarding@resend.dev")
+    html = md.markdown(brief_md)
+    resend.Emails.send({
+        "from": sender,
+        "to": [to],
+        "subject": f"Dev Community Pulse — week of {week}",
+        "html": html,
+    })
+    return "sent"

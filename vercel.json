@@ -1,12 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/run-digest", "schedule": "0 3 * * 5" }
   ],
   "functions": {
-    "main.py": {
-      "maxDuration": 300,
-      "includeFiles": "pulse/**"
-    }
+    "main.py": { "maxDuration": 300 }
   }
 }
