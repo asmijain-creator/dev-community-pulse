@@ -416,7 +416,7 @@ def _clip(text: str, n: int) -> str:
 
 def _summary(body: str, n: int = 3) -> tuple[str, int]:
     """Short plain version of a section for the homepage: first n bullets or two sentences, no links."""
-    body = re.sub(r"\s*\((?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+\)", "", body, flags=re.S)
+    body = re.sub(r"\s*[(\[](?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+[)\]]", "", body, flags=re.S)
     items = re.findall(r"<li>(.*?)</li>", body, flags=re.S)
     if items:
         lines = []

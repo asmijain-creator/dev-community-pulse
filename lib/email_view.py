@@ -27,14 +27,20 @@ def _nice(name: str) -> str:
 
 def _plain(html: str) -> str:
     """Text of one list item without its "(link, link)" source references."""
-    html = re.sub(r"\s*\((?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+\)", "", html, flags=re.S)
+    html = re.sub(r"\s*[(\[](?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+[)\]]", "", html, flags=re.S)
     return " ".join(re.sub(r"<[^>]+>", "", html).split())
 
 
 def _actions(brief_md: str, limit: int = 3) -> list[str]:
+    """Sprint actions, kept short: the bold title when an item has one, otherwise its first sentence."""
     for s in parse_brief(md.markdown(brief_md or "")):
         if s["key"] == "sprint-actions":
-            return [_plain(li) for li in re.findall(r"<li>(.*?)</li>", s["body"], flags=re.S)][:limit]
+            out = []
+            for li in re.findall(r"<li>(.*?)</li>", s["body"], flags=re.S)[:limit]:
+                lead = re.match(r"\s*(?:<p>)?\s*<strong>(.*?)</strong>\s*:", li, flags=re.S)
+                text = _plain(lead.group(1)) if lead else re.split(r"(?<=[.!?])\s", _plain(li))[0]
+                out.append(text.rstrip(".") + ".")
+            return out
     return []
 
 
