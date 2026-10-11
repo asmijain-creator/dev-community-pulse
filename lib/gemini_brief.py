@@ -55,9 +55,9 @@ mention count is 3 or more. State the actual counts, not just percentages.
 Pain points with high unresolved_count — these are product gaps worth building for.
 Say briefly why existing tools fail based on the evidence.
 
-## Sales objection signals
-Common reasons developers reject or complain about code-review tools, drawn from
-the posts. Useful for sales talk-tracks.
+## Concerns to watch
+Recurring complaints and doubts developers raise about code-review tools, drawn from
+the posts. Background context, not priorities: keep it to 2-4 short bullets.
 
 ## 3 actions for Monday sprint
 Three concrete, specific actions, each tied to one pain point and one evidence link.

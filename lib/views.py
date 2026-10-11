@@ -193,6 +193,78 @@ BASE_CSS = """
   .muted { color: var(--text-3); }
   .hint { font-size: var(--fs-xs); color: var(--text-4); margin-top: var(--s3); }
 
+  /* ---------- section tones ---------- */
+  .tone-red { --tone: #eb5757; } .tone-violet { --tone: #9b7cf0; } .tone-green { --tone: #4cb782; }
+  .tone-amber { --tone: #e2a336; } .tone-blue { --tone: #4c9aff; } .tone-indigo { --tone: #5e6ad2; } .tone-gray { --tone: #8a8f98; }
+  .ic.t { width: 24px; height: 24px; flex: none; border-radius: 6px; display: grid; place-items: center;
+          background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
+
+  /* ---------- homepage summary cards ---------- */
+  .sgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin-top: var(--s8); }
+  .sgrid .wide { grid-column: 1 / -1; }
+  .sum { display: block; background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--tone);
+         border-radius: var(--radius); padding: var(--s4) var(--s5); transition: border-color .15s, background .15s; }
+  .sum:hover { background: var(--hover); border-color: color-mix(in srgb, var(--tone) 45%, var(--border)); border-top-color: var(--tone); }
+  .sum-h { display: flex; align-items: center; gap: var(--s2); font-weight: 600; font-size: var(--fs-md);
+           color: color-mix(in srgb, var(--tone) 70%, var(--text)); margin-bottom: var(--s3); }
+  .sum-h small { color: var(--text-4); font-weight: 400; font-size: var(--fs-sm); }
+  .sum-h .go { margin-left: auto; font-size: var(--fs-xs); font-weight: 500; color: var(--text-4); white-space: nowrap; }
+  .sum:hover .go { color: var(--tone); }
+  .sum-l { list-style: none; margin: 0; padding: 0; color: var(--text-2); font-size: var(--fs-sm); }
+  .sum-l li { position: relative; padding: 3px 0 3px var(--s4); line-height: 1.5; }
+  .sum-l li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 5px; height: 5px; border-radius: 50%; background: var(--tone); opacity: .7; }
+  .sum-l b { color: var(--text); font-weight: 600; }
+  .sum-p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); }
+  .sum-f { margin-top: var(--s2); font-size: var(--fs-xs); color: var(--text-4); }
+  table.mini { font-size: var(--fs-sm); }
+  table.mini td { padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+  table.mini td + td { padding-left: var(--s4); }
+  table.mini tr:hover td { background: none; }
+  table.mini td.pp { min-width: 0; }
+
+  /* ---------- section pages ---------- */
+  .back { display: inline-block; font-size: var(--fs-sm); color: var(--text-3); margin-bottom: var(--s4); }
+  .back:hover { color: var(--text); }
+  h1.sec-title { display: flex; align-items: center; gap: var(--s3); color: color-mix(in srgb, var(--tone) 70%, var(--text)); }
+  h1.sec-title .ic.t { width: 32px; height: 32px; border-radius: 8px; }
+  h1.sec-title .ic.t svg { width: 18px; height: 18px; }
+  .card.accent { border-top: 2px solid var(--tone); margin-top: var(--s6); }
+  .card.accent .card-b { padding-top: var(--s5); font-size: var(--fs-md); }
+  .card-b li { margin: var(--s3) 0; }
+  .pager { display: flex; justify-content: space-between; gap: var(--s3); margin-top: var(--s8); }
+  .pn { flex: 1; max-width: 50%; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s3) var(--s4);
+        font-size: var(--fs-sm); font-weight: 500; }
+  .pn:hover { background: var(--hover); }
+  .pn small { display: block; font-size: var(--fs-xs); font-weight: 400; color: var(--text-4); }
+  .pn.r { text-align: right; margin-left: auto; }
+  .rail a.on { color: var(--text); border-left-color: var(--tone); }
+  .rail a:hover { border-left-color: var(--tone, var(--accent)); }
+
+  /* ---------- run progress ---------- */
+  .runbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--s4);
+            background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+  .runbox[hidden] { display: none; }
+  .run-card { width: min(480px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+              padding: var(--s5) var(--s6); box-shadow: 0 24px 64px rgba(0,0,0,.45); }
+  .run-h { display: flex; align-items: center; gap: var(--s3); font-size: var(--fs-lg); }
+  .run-h b { font-weight: 600; }
+  .run-time { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--text-3); font-size: var(--fs-sm); }
+  .run-note { color: var(--text-3); font-size: var(--fs-sm); margin: var(--s2) 0 var(--s4); }
+  .spin { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid var(--accent-soft); border-top-color: var(--accent);
+          animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .steps { list-style: none; padding: 0; margin: 0 0 var(--s4); }
+  .steps li { position: relative; padding: 7px 0 7px 30px; color: var(--text-4); font-size: var(--fs-sm); transition: color .2s; }
+  .steps li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 16px; height: 16px; border-radius: 50%;
+                      border: 1.5px solid var(--border); box-sizing: border-box; }
+  .steps li.active { color: var(--text); font-weight: 500; }
+  .steps li.active::before { border: 2px solid var(--accent-soft); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .steps li.done { color: var(--text-3); }
+  .steps li.done::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.3 2.3 4.7-4.9' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/11px no-repeat; }
+  .run-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+  .run-bar u { display: block; height: 100%; width: 0; background: var(--accent); transition: width .5s linear; }
+  @media (max-width: 860px) { .sgrid { grid-template-columns: minmax(0, 1fr); } .pn small { display: none; } }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -232,18 +304,24 @@ def _icon(name: str) -> str:
     return f'<svg class="i" viewBox="0 0 16 16" aria-hidden="true">{_ICONS[name]}</svg>'
 
 
-# Brief section heading keyword -> (icon, colour, short label for the outline)
-_SECTION_STYLE = [
-    ("tl;dr", ("zap", "", "Summary")),
-    ("summary", ("zap", "", "Summary")),
-    ("overview", ("zap", "", "Overview")),
-    ("pain point", ("flame", "red", "Top pain points")),
-    ("trend", ("trend", "", "Trending")),
-    ("unsolved", ("target", "green", "Opportunities")),
-    ("unresolved", ("target", "green", "Opportunities")),
-    ("opportunit", ("target", "green", "Opportunities")),
-    ("objection", ("shield", "amber", "Sales objections")),
-    ("action", ("check", "", "Sprint actions")),
+# Brief sections in homepage order: (key, label, icon, tone). Matching keywords are in _MATCH.
+SECTIONS = [
+    ("overview", "Overview", "zap", "gray"),
+    ("top-pain-points", "Top pain points", "flame", "red"),
+    ("trending", "Trending", "trend", "violet"),
+    ("opportunities", "Opportunities", "target", "green"),
+    ("concerns", "Concerns to watch", "shield", "amber"),
+    ("sprint-actions", "Sprint actions", "check", "blue"),
+]
+_SECTION = {s[0]: s for s in SECTIONS}
+# Checked in this order, so "Unresolved pain points" lands in Opportunities, not Top pain points.
+_MATCH = [
+    ("concerns", ("concern", "objection")),
+    ("sprint-actions", ("action",)),
+    ("trending", ("trend",)),
+    ("opportunities", ("unsolved", "unresolved", "opportunit", "gap")),
+    ("top-pain-points", ("pain point",)),
+    ("overview", ("tl;dr", "summary", "overview")),
 ]
 
 
@@ -251,32 +329,101 @@ def _strip_tags(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text)
 
 
-def _section_style(title: str) -> tuple[str, str, str]:
-    low = title.lower()
-    for key, style in _SECTION_STYLE:
-        if key in low:
-            return style
-    return "doc", "", _strip_tags(title)
-
-
 def _cat_class(category: str) -> str:
     return f"c{sum(map(ord, category or '')) % 7}"
 
 
-def _split_brief(brief_html: str) -> list[dict]:
-    """Turn the rendered markdown into one card per <h2> section."""
+def parse_brief(brief_html: str) -> list[dict]:
+    """Split the rendered markdown at each <h2> into sections, in homepage order."""
     parts = re.split(r"<h2[^>]*>(.*?)</h2>", brief_html, flags=re.S)
+    raw = []
     intro = re.sub(r"<h1[^>]*>.*?</h1>", "", parts[0], flags=re.S).strip()
-    sections = []
-    if intro:
-        sections.append({"title": "Overview", "body": intro})
-    for i in range(1, len(parts), 2):
-        sections.append({"title": parts[i].strip(), "body": parts[i + 1].strip()})
-    return sections
+    if _strip_tags(intro).strip():
+        raw.append(("Overview", intro))
+    raw += [(parts[i].strip(), parts[i + 1].strip()) for i in range(1, len(parts), 2)]
+
+    known, extra = {}, []
+    for title, body in raw:
+        low = _strip_tags(title).lower()
+        key = next((k for k, words in _MATCH if any(w in low for w in words)), None)
+        if key and key not in known:
+            _, label, icon, tone = _SECTION[key]
+            known[key] = {"key": key, "label": label, "icon": icon, "tone": tone, "body": body}
+        else:
+            slug = re.sub(r"[^a-z0-9]+", "-", low).strip("-") or "section"
+            while slug in known or slug in [e["key"] for e in extra] or slug == "pain-points":
+                slug += "-2"
+            extra.append({"key": slug, "label": _strip_tags(title), "icon": "doc", "tone": "gray", "body": body})
+    return [known[k] for k, *_ in SECTIONS if k in known] + extra
+
+
+def _clip(text: str, n: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= n else text[:n].rsplit(" ", 1)[0].rstrip(",;:—-") + "…"
+
+
+def _summary(body: str, n: int = 3) -> tuple[str, int]:
+    """Short plain version of a section for the homepage: first n bullets or two sentences, no links."""
+    body = re.sub(r"\s*\((?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+\)", "", body, flags=re.S)
+    items = re.findall(r"<li>(.*?)</li>", body, flags=re.S)
+    if items:
+        lines = []
+        for item in items[:n]:
+            m = re.match(r"\s*(?:<p>)?\s*<strong>(.*?)</strong>(.*)", item, flags=re.S)
+            lead, rest = (m.group(1), m.group(2)) if m else ("", item)
+            rest = _clip(_strip_tags(rest).strip(), 110)
+            lead_html = f"<b>{escape(_strip_tags(lead))}</b>{'' if rest[:1] in ':,.' else ' '}" if lead else ""
+            lines.append(f"<li>{lead_html}{escape(rest)}</li>")
+        return f'<ul class="sum-l">{"".join(lines)}</ul>', max(0, len(items) - n)
+    text = " ".join(_strip_tags(body).split())
+    two = " ".join(re.split(r"(?<=[.!?])\s+", text)[:2])
+    return f'<p class="sum-p">{escape(_clip(two, 240))}</p>', 0
 
 
 def _nav_link(href: str, icon: str, label: str, active: bool) -> str:
     return f'<a href="{href}" class="{"on" if active else ""}">{_icon(icon)}{label}</a>'
+
+
+RUN_OVERLAY = """
+<div class="runbox" id="runbox" hidden>
+  <div class="run-card" role="dialog" aria-modal="true" aria-labelledby="run-t">
+    <div class="run-h"><span class="spin"></span><b id="run-t">Generating a new brief</b><span class="run-time" id="run-time">0:00</span></div>
+    <p class="run-note" id="run-note">Usually takes about a minute. Keep this tab open: the brief reloads here when it's ready.</p>
+    <ol class="steps" id="run-steps">
+      <li data-at="0">Collecting posts from Hacker News, Stack Overflow and GitHub</li>
+      <li data-at="12">Tagging each post's pain point with Gemini</li>
+      <li data-at="40">Counting mentions and trends against last week</li>
+      <li data-at="48">Writing the brief</li>
+      <li data-at="70">Saving it and sending the email</li>
+    </ol>
+    <div class="run-bar"><u id="run-bar"></u></div>
+  </div>
+</div>
+<script>
+(() => {
+  const box = document.getElementById('runbox'); let timer;
+  const reset = () => {
+    clearInterval(timer); box.hidden = true;
+    document.querySelectorAll('form[data-run] button').forEach(b => b.disabled = false);
+  };
+  document.querySelectorAll('form[data-run]').forEach(f => f.addEventListener('submit', () => {
+    f.querySelector('button').disabled = true; box.hidden = false;
+    const steps = [...document.querySelectorAll('#run-steps li')], start = Date.now();
+    const tick = () => {
+      const s = (Date.now() - start) / 1000;
+      document.getElementById('run-time').textContent = Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+      steps.forEach((li, i) => {
+        const next = steps[i + 1], started = s >= +li.dataset.at, finished = next && s >= +next.dataset.at;
+        li.className = finished ? 'done' : started ? 'active' : '';
+      });
+      document.getElementById('run-bar').style.width = Math.min(95, s / 80 * 100) + '%';
+      if (s > 120) document.getElementById('run-note').textContent = 'Taking longer than usual, still working. The server stops after 5 minutes.';
+    };
+    tick(); timer = setInterval(tick, 500);
+  }));
+  window.addEventListener('pageshow', e => { if (e.persisted) reset(); });
+})();
+</script>"""
 
 
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
@@ -287,12 +434,11 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
         for i, h in enumerate(history or [])
     )
     hist_block = f'<div class="nav-h">Past briefs</div><nav class="nav">{hist_links}</nav>' if hist_links else ""
-    nav = (_nav_link("/", "doc", "Latest brief", active == "brief")
-           + _nav_link("/topics", "tag", "Topics", active == "topics")
-           + _nav_link("/health", "pulse", "Health", active == "health"))
-    m_nav = (f'<a href="/" class="{"on" if active == "brief" else ""}">Latest brief</a>'
-             f'<a href="/topics" class="{"on" if active == "topics" else ""}">Topics</a>'
-             f'<a href="/health" class="{"on" if active == "health" else ""}">Health</a>')
+    links = [("/", "doc", "Latest brief", "brief"), ("/pain-points", "flame", "Pain points", "points"),
+             ("/topics", "tag", "Topics", "topics"), ("/health", "pulse", "Health", "health")]
+    nav = "".join(_nav_link(href, icon, label, active == key) for href, icon, label, key in links)
+    m_nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
+                    for href, _, label, key in links)
     return f"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -317,17 +463,13 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
     {body}
   </div>
 </div>
-<script>
-document.querySelectorAll('form[data-busy]').forEach(f => f.addEventListener('submit', () => {{
-  const b = f.querySelector('button'); b.disabled = true; b.lastChild.textContent = f.dataset.busy;
-}}));
-</script>
+{RUN_OVERLAY}
 {script}
 </body></html>"""
 
 
 RUN_BUTTON = (
-    '<form class="inline" method="post" action="/run-now" data-busy=" Running… about a minute">'
+    '<form class="inline" method="post" action="/run-now" data-run>'
     '<button class="btn btn-primary" type="submit" title="Fetches the last 7 days, tags posts with Gemini and writes a new brief">'
     f'{_icon("play")}<span> Run now</span></button></form>'
 )
@@ -354,12 +496,33 @@ def not_configured(missing: list[str]) -> str:
                  crumbs="<b>Dev Community Pulse</b>")
 
 
+def _flash(flash: str | None) -> str:
+    if not flash:
+        return ""
+    bad = "failed" in flash.lower()
+    return (f'<div class="flash{" err" if bad else ""}" role="status">'
+            f'{_icon("pulse" if bad else "check")}{escape(flash)}</div>')
+
+
+def _week_title(week: str | None) -> str:
+    return f"Week of {week}" if week else "No brief yet"
+
+
+def _is_latest(week: str | None, history: list[dict]) -> bool:
+    return week is None or not history or week == history[0]["week_start"]
+
+
+def _meter(n: int, max_m: int) -> str:
+    return f'<span class="meter">{n}<i><u style="width:{n * 100 / (max_m or 1):.0f}%"></u></i></span>'
+
+
 def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
               week_start: str | None, flash: str | None = None) -> str:
-    latest_week = history[0]["week_start"] if history else None
-    is_latest = week_start is None or week_start == latest_week
+    """Homepage: headline numbers and a short version of every section, each linking to its full page."""
+    is_latest = _is_latest(week_start, history)
+    title = _week_title(week_start)
+    base = f"/brief/{escape(week_start or '')}"
 
-    # ---- headline numbers ----
     total = sum(m["mention_count"] for m in metrics_rows)
     unresolved = sum(m.get("unresolved_count") or 0 for m in metrics_rows)
     engagement = sum(m.get("engagement") or 0 for m in metrics_rows)
@@ -372,23 +535,110 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
   <div class="stat"><span>Engagement</span><b>{engagement:,}</b><em>votes + comments</em></div>
 </div>"""
 
-    # ---- brief as cards ----
-    cards, outline, used = "", "", set()
-    for s in _split_brief(brief_html):
-        icon, colour, short = _section_style(s["title"])
-        sid = re.sub(r"[^a-z0-9]+", "-", short.lower()).strip("-") or "section"
-        while sid in used:
-            sid += "-2"
-        used.add(sid)
-        extra = " todo" if icon == "check" else ""
-        cards += (f'<section class="card" id="{sid}"><div class="card-h"><span class="ic {colour}">{_icon(icon)}</span>'
-                  f'{s["title"]}</div><div class="card-b{extra}">{s["body"]}</div></section>')
-        outline += f'<a href="#{sid}">{escape(short)}</a>'
-    if not cards:
-        cards = '<section class="card"><div class="empty">No brief yet. Click <b>Run now</b> to generate the first one.</div></section>'
+    def card(s: dict, wide: bool = False) -> str:
+        summary, more = _summary(s["body"])
+        foot = f'<div class="sum-f">+{more} more</div>' if more else ""
+        return (f'<a class="sum tone-{s["tone"]}{" wide" if wide else ""}" href="{base}/{s["key"]}">'
+                f'<div class="sum-h"><span class="ic t">{_icon(s["icon"])}</span>{escape(s["label"])}'
+                f'<span class="go">Read more →</span></div>{summary}{foot}</a>')
 
-    # ---- pain point table ----
-    max_m = max((m["mention_count"] for m in metrics_rows), default=0) or 1
+    # Preview of the pain point table; the full one lives on its own page.
+    max_m = max((m["mention_count"] for m in metrics_rows), default=0)
+    preview_rows = "".join(
+        f'<tr><td class="pp">{escape(m["pain_point"])}</td>'
+        f'<td class="hide-sm"><span class="pill {_cat_class(m.get("category") or "Other")}">{escape(m.get("category") or "Other")}</span></td>'
+        f'<td class="n">{_meter(m["mention_count"], max_m)}</td></tr>'
+        for m in metrics_rows[:5]
+    )
+    all_card = (f'<a class="sum tone-indigo wide" href="{base}/pain-points">'
+                f'<div class="sum-h"><span class="ic t">{_icon("search")}</span>All pain points'
+                f'<small>{len(metrics_rows)}</small><span class="go">View all →</span></div>'
+                f'<table class="mini"><tbody>{preview_rows}</tbody></table>'
+                + (f'<div class="sum-f">+{len(metrics_rows) - 5} more pain points</div>' if len(metrics_rows) > 5 else "")
+                + '</a>') if metrics_rows and week_start else ""
+
+    sections = parse_brief(brief_html) if week_start else []
+    by_key = {s["key"]: s for s in sections}
+    grid = ""
+    if "overview" in by_key:
+        grid += card(by_key["overview"], wide=True)
+    if "top-pain-points" in by_key:
+        grid += card(by_key["top-pain-points"], wide=True)
+    grid += all_card
+    grid += "".join(card(s) for s in sections if s["key"] not in ("overview", "top-pain-points"))
+    if not grid:
+        grid = '<div class="card wide"><div class="empty">No brief yet. Click <b>Run now</b> to generate the first one.</div></div>'
+
+    eyebrow = ('<span class="dot"></span>Latest brief' if is_latest
+               else '<span class="dot" style="background:var(--text-4)"></span>Past brief')
+    body = f"""
+<main class="content narrow">
+  <div>
+    {_flash(flash)}
+    <div class="eyebrow">{eyebrow}</div>
+    <h1>{escape(title)}</h1>
+    <p class="lede">The short version of what developers raised on Hacker News, Stack Overflow and GitHub. Open any card for the full details and sources.</p>
+    {stats}
+    <div class="sgrid">{grid}</div>
+  </div>
+</main>"""
+    crumbs = f'<a href="/">Briefs</a><span>/</span><b>{escape(title)}</b>'
+    return _page(f"{title} · Dev Community Pulse", body, active="brief" if is_latest else "",
+                 crumbs=crumbs, actions=RUN_BUTTON, history=history, current_week=week_start,
+                 script=CLEAR_RUN_JS)
+
+
+CLEAR_RUN_JS = """<script>
+// drop ?run=… so a refresh doesn't repeat the message
+if (location.search.includes('run=')) history.replaceState(null, '', location.pathname);
+</script>"""
+
+
+def _rail(week: str, sections: list[dict], current: str) -> str:
+    base = f"/brief/{escape(week)}"
+    links = "".join(
+        f'<a href="{base}/{s["key"]}" class="tone-{s["tone"]}{" on" if s["key"] == current else ""}">{escape(s["label"])}</a>'
+        for s in sections
+    )
+    links += f'<a href="{base}/pain-points" class="tone-indigo{" on" if current == "pain-points" else ""}">All pain points</a>'
+    return f'<aside class="rail"><h4>In this brief</h4>{links}</aside>'
+
+
+def section_page(week: str, sections: list[dict], key: str, history: list[dict]) -> str:
+    """Full text of one brief section, with links to the others."""
+    i = next(idx for idx, s in enumerate(sections) if s["key"] == key)
+    s = sections[i]
+    base = f"/brief/{escape(week)}"
+    prev_link = (f'<a class="pn" href="{base}/{sections[i - 1]["key"]}"><small>Previous</small>← {escape(sections[i - 1]["label"])}</a>'
+                 if i > 0 else f'<a class="pn" href="/history/{escape(week)}"><small>Back</small>← Brief overview</a>')
+    next_link = (f'<a class="pn r" href="{base}/{sections[i + 1]["key"]}"><small>Next</small>{escape(sections[i + 1]["label"])} →</a>'
+                 if i + 1 < len(sections) else f'<a class="pn r" href="{base}/pain-points"><small>Next</small>All pain points →</a>')
+    todo = " todo" if key == "sprint-actions" else ""
+    hint = '<p class="hint">Click an action to tick it off. Ticks are saved in this browser.</p>' if todo else ""
+    note = ('<p class="lede">Recurring complaints and doubts developers raise about code review tools. '
+            'Useful background, not a priority list.</p>' if key == "concerns" else "")
+    title = _week_title(week)
+    body = f"""
+<main class="content">
+  <div>
+    <a class="back" href="/history/{escape(week)}">← {escape(title)}</a>
+    <h1 class="sec-title tone-{s['tone']}"><span class="ic t">{_icon(s['icon'])}</span>{escape(s['label'])}</h1>
+    {note}
+    <section class="card tone-{s['tone']} accent"><div class="card-b{todo}">{s['body']}</div></section>
+    {hint}
+    <nav class="pager">{prev_link}{next_link}</nav>
+  </div>
+  {_rail(week, sections, key)}
+</main>"""
+    crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/history/{escape(week)}">{escape(title)}</a>'
+              f'<span>/</span><b>{escape(s["label"])}</b>')
+    return _page(f"{s['label']} · {title}", body, crumbs=crumbs, actions=RUN_BUTTON,
+                 history=history, current_week=week, script=_todo_js(week) if todo else "")
+
+
+def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[dict], history: list[dict]) -> str:
+    """Every pain point for the week, with category filters, search and sorting."""
+    max_m = max((m["mention_count"] for m in metrics_rows), default=0)
     categories = sorted({m.get("category") or "Other" for m in metrics_rows})
     rows_html = ""
     for m in metrics_rows:
@@ -398,7 +648,7 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
             f'<tr data-cat="{escape(cat)}">'
             f'<td class="pp">{escape(m["pain_point"])}</td>'
             f'<td><span class="pill {_cat_class(cat)}">{escape(cat)}</span></td>'
-            f'<td class="n" data-v="{n}"><span class="meter">{n}<i><u style="width:{n * 100 / max_m:.0f}%"></u></i></span></td>'
+            f'<td class="n" data-v="{n}">{_meter(n, max_m)}</td>'
             f'<td class="n {"warn" if u else "zero"}" data-v="{u}">{u}</td>'
             f'<td class="n {"" if e else "zero"}" data-v="{e}">{e:,}</td></tr>'
         )
@@ -416,45 +666,33 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
     <th class="n" data-sort="num" aria-sort="descending">Mentions</th><th class="n" data-sort="num">Unresolved</th>
     <th class="n" data-sort="num">Engagement</th></tr></thead>
   <tbody>{rows_html}</tbody>
-</table><div class="tfoot" id="count">{len(metrics_rows)} pain points</div></div>"""
+</table><div class="tfoot" id="count">{len(metrics_rows)} pain points</div></div>
+<p class="hint">Unresolved: threads without an accepted answer or fix. Engagement: votes plus comments.</p>"""
     else:
-        table = '<div class="tbl"><div class="empty">No metrics yet. Click <b>Run now</b> to generate the first brief.</div></div>'
+        table = '<div class="tbl"><div class="empty">No pain points yet. Click <b>Run now</b> to generate the first brief.</div></div>'
 
-    flash_html = ""
-    if flash:
-        bad = "failed" in flash.lower()
-        flash_html = (f'<div class="flash{" err" if bad else ""}" role="status">'
-                      f'{_icon("pulse" if bad else "check")}{escape(flash)}</div>')
-    title = f"Week of {week_start}" if week_start else "No brief yet"
-    eyebrow = ('<span class="dot"></span>Latest brief' if is_latest
-               else '<span class="dot" style="background:var(--text-4)"></span>Past brief')
+    title = _week_title(week)
+    back = f'<a class="back" href="/history/{escape(week)}">← {escape(title)}</a>' if week else ""
     body = f"""
-<main class="content">
+<main class="content{"" if week else " narrow"}">
   <div>
-    {flash_html}
-    <div class="eyebrow">{eyebrow}</div>
-    <h1>{escape(title)}</h1>
-    <p class="lede">Pain points, trends and product gaps developers raised on Hacker News, Stack Overflow and GitHub.</p>
-    {stats}
-    <h2 class="sec" id="brief">Brief</h2>
-    {cards}
-    <h2 class="sec" id="numbers">All pain points <small>{len(metrics_rows)}</small></h2>
+    {back}
+    <h1 class="sec-title tone-indigo"><span class="ic t">{_icon("search")}</span>All pain points</h1>
+    <p class="lede">Every problem developers raised in the {escape(title.lower())}, counted from the collected posts.</p>
     {table}
   </div>
-  <aside class="rail"><h4>On this page</h4>{outline}<a href="#numbers">All pain points</a></aside>
+  {_rail(week, sections, "pain-points") if week else ""}
 </main>"""
-    crumbs = f'<a href="/">Briefs</a><span>/</span><b>{escape(title)}</b>'
-    return _page(f"{title} · Dev Community Pulse", body, active="brief" if is_latest else "",
-                 crumbs=crumbs, actions=RUN_BUTTON, history=history, current_week=week_start,
-                 script=_dashboard_js(week_start or ""))
+    crumbs = (f'<a href="/">Briefs</a><span>/</span>'
+              + (f'<a href="/history/{escape(week)}">{escape(title)}</a><span>/</span>' if week else "")
+              + "<b>All pain points</b>")
+    return _page(f"All pain points · {title}", body, active="points" if _is_latest(week, history) else "",
+                 crumbs=crumbs, actions=RUN_BUTTON, history=history, current_week=week, script=TABLE_JS)
 
 
-def _dashboard_js(week: str) -> str:
+def _todo_js(week: str) -> str:
     return """<script>
 (() => {
-  // drop ?run=… so a refresh doesn't repeat the message
-  if (location.search.includes('run=')) history.replaceState(null, '', location.pathname);
-
   // sprint checklist, remembered per week in this browser
   const key = 'pulse-todo-""" + re.sub(r"[^0-9-]", "", week) + """';
   let done = {}; try { done = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
@@ -466,8 +704,13 @@ def _dashboard_js(week: str) -> str:
       try { localStorage.setItem(key, JSON.stringify(done)); } catch (e) {}
     });
   });
+})();
+</script>"""
 
-  // table: filter by category + text, sort by column
+
+TABLE_JS = """<script>
+(() => {
+  // filter by category + text, sort by column
   const table = document.getElementById('pp'); if (!table) return;
   const rows = [...table.tBodies[0].rows], q = document.getElementById('q'), count = document.getElementById('count');
   let cat = '';

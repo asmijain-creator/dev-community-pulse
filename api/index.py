@@ -129,40 +129,81 @@ def health_html():
     return V.health_page([("Settings", settings), ("Data", data), ("Delivery", delivery)])
 
 
+def _load_week(sb, week: str | None = None):
+    """(week_start, brief_html, metrics) for one week, or the latest when week is None."""
+    q = sb.table("digests").select("*")
+    q = q.eq("week_start", week) if week else q.order("week_start", desc=True)
+    rows = q.limit(1).execute().data
+    if not rows:
+        return None
+    ws = rows[0]["week_start"]
+    metrics = sb.table("weekly_metrics").select("*").eq("week_start", ws) \
+        .order("mention_count", desc=True).execute().data or []
+    return ws, md.markdown(rows[0]["content_md"] or ""), metrics
+
+
+def _history(sb) -> list[dict]:
+    return sb.table("digests").select("week_start").order("week_start", desc=True).limit(12).execute().data or []
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     ok, missing = _env_check()
     if not ok:
         return HTMLResponse(V.not_configured(missing))
     sb = db()
-    latest = sb.table("digests").select("*").order("week_start", desc=True).limit(1).execute()
-    metrics_rows: list[dict] = []
-    ws = None
-    brief_md = "_No brief yet. Click **Run now** above to generate the first one._"
-    if latest.data:
-        ws = latest.data[0]["week_start"]
-        brief_md = latest.data[0]["content_md"] or brief_md
-        m = sb.table("weekly_metrics").select("*").eq("week_start", ws) \
-            .order("mention_count", desc=True).execute()
-        metrics_rows = m.data or []
-    history = sb.table("digests").select("week_start") \
-        .order("week_start", desc=True).limit(12).execute()
-    return V.dashboard(md.markdown(brief_md), metrics_rows, history.data or [], ws,
-                       flash=_run_message(request.query_params))
+    week = _load_week(sb)
+    flash = _run_message(request.query_params)
+    if not week:
+        return V.dashboard("", [], _history(sb), None, flash=flash)
+    ws, brief_html, metrics = week
+    return V.dashboard(brief_html, metrics, _history(sb), ws, flash=flash)
 
 
 @app.get("/history/{week}", response_class=HTMLResponse)
 def history_item(week: str):
     sb = db()
-    r = sb.table("digests").select("*").eq("week_start", week).limit(1).execute()
-    if not r.data:
+    found = _load_week(sb, week)
+    if not found:
         raise HTTPException(404, "no brief for that week")
-    m = sb.table("weekly_metrics").select("*").eq("week_start", week) \
-        .order("mention_count", desc=True).execute()
-    hist = sb.table("digests").select("week_start") \
-        .order("week_start", desc=True).limit(12).execute()
-    return V.dashboard(md.markdown(r.data[0]["content_md"] or ""),
-                       m.data or [], hist.data or [], week)
+    ws, brief_html, metrics = found
+    return V.dashboard(brief_html, metrics, _history(sb), ws)
+
+
+@app.get("/pain-points", response_class=HTMLResponse)
+def pain_points_latest():
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    sb = db()
+    found = _load_week(sb)
+    if not found:
+        return V.pain_points_page(None, [], [], _history(sb))
+    ws, brief_html, metrics = found
+    return V.pain_points_page(ws, metrics, V.parse_brief(brief_html), _history(sb))
+
+
+@app.get("/brief/{week}/pain-points", response_class=HTMLResponse)
+def pain_points_week(week: str):
+    sb = db()
+    found = _load_week(sb, week)
+    if not found:
+        raise HTTPException(404, "no brief for that week")
+    ws, brief_html, metrics = found
+    return V.pain_points_page(ws, metrics, V.parse_brief(brief_html), _history(sb))
+
+
+@app.get("/brief/{week}/{section}", response_class=HTMLResponse)
+def brief_section(week: str, section: str):
+    sb = db()
+    found = _load_week(sb, week)
+    if not found:
+        raise HTTPException(404, "no brief for that week")
+    ws, brief_html, _ = found
+    sections = V.parse_brief(brief_html)
+    if section not in {s["key"] for s in sections}:
+        return RedirectResponse(f"/history/{ws}", status_code=303)
+    return V.section_page(ws, sections, section, _history(sb))
 
 
 # ---------- admin ----------
