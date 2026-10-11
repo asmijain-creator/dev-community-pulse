@@ -3,7 +3,7 @@
 Design tokens follow one scale: type 12/13/14/16/20/28px, spacing on a 4px grid.
 """
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 from urllib.parse import quote
 
@@ -17,28 +17,38 @@ BASE_CSS = """
     --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
     /* spacing scale (4px grid) */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px;
-    --radius: 10px; --radius-sm: 8px;
-    /* colours: neutral surfaces, mint for "good / action", red for "problem" */
-    --bg: #ffffff; --panel: #f8f9fb; --surface: #ffffff; --hover: #f3f5f8;
-    --border: #e7e9ee; --border-soft: #f0f1f4;
-    --text: #2f3242; --text-2: #4b4f63; --text-3: #6f7285; --text-4: #9a9cab;
-    --accent: #00a67e; --accent-strong: #007a5c; --accent-soft: rgba(0,166,126,.12);
-    --btn-bg: #007a5c; --btn-hover: #006b50; --btn-fg: #ffffff;
-    --link: #007a5c; --bar: #00a67e; --bar-muted: #9fdcc9;
-    --green: #00a67e; --red: #eb5b3c; --amber: #f5a623; --warn-text: #b86e00;
-    --flash: rgba(0,166,126,.08);
+    --radius: 12px; --radius-sm: 8px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+    /* warm paper surfaces; rust = rising / problem, blue = falling, ink = emphasis */
+    --bg: #f4f3ef; --panel: #f9f8f5; --surface: #ffffff; --hover: #f6f5f1; --chip: #efede8;
+    --border: #e5e2db; --border-soft: #efede8;
+    --text: #1c1b19; --text-2: #45423d; --text-3: #75716a; --text-4: #a39f97;
+    --ink: #18181b; --ink-hover: #2c2c30; --accent: #b9410f; --accent-strong: #b9410f; --accent-on-ink: #f0a06c;
+    --accent-soft: rgba(194,65,12,.10);
+    --up: #b9410f; --up-bg: #fbe7da; --down: #1d4ed8; --down-bg: #e2eafc;
+    --peach: #fbeadf; --peach-border: #f3d3bf;
+    --series-0: #c2410c; --series-1: #2563eb; --series-2: #1c1b19;
+    --btn-bg: #18181b; --btn-hover: #2c2c30; --btn-fg: #ffffff;
+    --link: #b9410f; --bar: #c2410c; --bar-muted: #f1c4a6;
+    --green: #15803d; --red: #c2410c; --amber: #b45309; --warn-text: #b45309;
+    --flash: rgba(194,65,12,.07);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --bg: #121314; --panel: #17191b; --surface: #1c1e21; --hover: #24272b;
-      --border: #2c2f34; --border-soft: #222528;
-      --text: #f2f3f5; --text-2: #c5c7ce; --text-3: #9a9ca6; --text-4: #6f727b;
-      --accent: #00d09c; --accent-strong: #00d09c; --accent-soft: rgba(0,208,156,.14);
-      --btn-bg: #00d09c; --btn-hover: #1fdcae; --btn-fg: #06261d;
-      --link: #3fdcb2; --bar: #00d09c; --bar-muted: #1f6b57;
-      --green: #00d09c; --red: #f0735a; --amber: #f5b13d; --warn-text: #f5b13d;
-      --flash: rgba(0,208,156,.10);
+      --bg: #141311; --panel: #1a1917; --surface: #1e1d1b; --hover: #262522; --chip: #2a2926;
+      --border: #33312d; --border-soft: #282724;
+      --text: #f2f0eb; --text-2: #cfccc4; --text-3: #9d9990; --text-4: #6f6b64;
+      --ink: #f2f0eb; --ink-hover: #ffffff; --accent: #f08a52; --accent-strong: #f08a52; --accent-on-ink: #b9410f;
+      --accent-soft: rgba(240,138,82,.14);
+      --up: #f59a68; --up-bg: #3a2418; --down: #8fb0ff; --down-bg: #1b2742;
+      --peach: #2a201a; --peach-border: #4a3122;
+      --series-0: #f08a52; --series-1: #6f9bff; --series-2: #e8e5de;
+      --btn-bg: #f2f0eb; --btn-hover: #ffffff; --btn-fg: #141311;
+      --link: #f59a68; --bar: #f08a52; --bar-muted: #6b3a22;
+      --green: #4ade80; --red: #f08a52; --amber: #f5b13d; --warn-text: #f5b13d;
+      --flash: rgba(240,138,82,.10);
     }
   }
   * { box-sizing: border-box; }
@@ -309,6 +319,163 @@ BASE_CSS = """
   .run-bar u { display: block; height: 100%; width: 0; background: var(--bar); transition: width .5s linear; }
   @media (max-width: 860px) { .sgrid { grid-template-columns: minmax(0, 1fr); } .pn small { display: none; } }
 
+  /* ================= Friday Brief ================= */
+  body { background: var(--bg); }
+  .mono { font-family: var(--mono); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .topnav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 90%, transparent);
+            backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .topnav-in { max-width: 1240px; margin: 0 auto; height: 60px; display: flex; align-items: center; gap: var(--s4); padding: 0 var(--s6); }
+  .brand2 { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .brand2 i { width: 26px; height: 26px; border-radius: 7px; background: var(--ink); color: var(--accent-on-ink); display: grid; place-items: center; }
+  .scope { font-family: var(--mono); font-size: 11px; color: var(--text-3); border: 1px solid var(--border); border-radius: 999px;
+           padding: 3px 10px; white-space: nowrap; }
+  .tabs { margin-left: auto; display: flex; gap: 2px; overflow-x: auto; }
+  .tabs a { padding: 7px 14px; border-radius: 8px; font-size: var(--fs-md); color: var(--text-2); white-space: nowrap; }
+  .tabs a:hover { background: var(--hover); color: var(--text); }
+  .tabs a.on { background: var(--chip); color: var(--text); font-weight: 500; }
+  .nav-right { display: flex; align-items: center; gap: var(--s2); }
+  .wpick select { font: inherit; font-size: var(--fs-sm); color: var(--text-2); background: var(--surface); border: 1px solid var(--border);
+                  border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .crumbs-row { max-width: 1180px; margin: var(--s5) auto 0; padding: 0 var(--s8); }
+  .main, .app { display: block; }
+  .content { padding-top: var(--s6); }
+  .foot { max-width: 1240px; margin: 0 auto; padding: var(--s6); display: flex; justify-content: space-between; gap: var(--s4);
+          font-size: var(--fs-xs); color: var(--text-3); border-top: 1px solid var(--border); }
+  .foot a:hover { color: var(--text); }
+
+  .fb { max-width: 1240px; margin: 0 auto; padding: var(--s8) var(--s6) var(--s12); }
+  .fb-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .fb-h1 { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: -.015em; margin: 10px 0 10px; }
+  .fb-sub { color: var(--text-2); max-width: 640px; margin: 0; font-size: var(--fs-md); line-height: 1.6; }
+  .fb-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s6); align-items: end; }
+  .fb-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s3); }
+  .gen { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .fb-btns { display: flex; gap: var(--s2); }
+  .btn { height: 38px; padding: 0 var(--s4); border-radius: 9px; font-size: var(--fs-md); }
+  .btn-primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .btn-primary:hover { background: var(--ink-hover); }
+  .topnav .btn { height: 34px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: var(--s6); }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+  .kpi .l { font-size: var(--fs-sm); color: var(--text-2); }
+  .kpi .v { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: var(--s2); display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+  .kpi .v small { font-size: var(--fs-sm); font-weight: 400; color: var(--text-3); letter-spacing: 0; }
+  .kpi .s { font-size: var(--fs-xs); color: var(--text-3); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.dark { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .kpi.dark .l, .kpi.dark .s { color: color-mix(in srgb, var(--bg) 70%, var(--ink)); }
+  .kpi.dark .v small { color: var(--accent-on-ink); font-size: 12px; }
+  .chg { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; white-space: nowrap; letter-spacing: 0; }
+  .chg.up { background: var(--up-bg); color: var(--up); } .chg.down { background: var(--down-bg); color: var(--down); }
+  .chg.flat { background: var(--chip); color: var(--text-3); }
+
+  .row2 { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; min-width: 0; }
+  .panel-h { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s4); }
+  .panel h2, .ph, .sec-h h2 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  .panel-h .meta { font-family: var(--mono); font-size: 11px; color: var(--text-3); white-space: nowrap; padding-top: 4px; }
+  .sub { font-size: var(--fs-xs); color: var(--text-3); margin: 4px 0 0; line-height: 1.5; }
+  .plan { list-style: none; padding: 0; margin: var(--s4) 0 0; }
+  .plan li { display: flex; gap: 14px; padding: 7px 0; font-size: var(--fs-md); line-height: 1.6; color: var(--text-2); }
+  .plan li b { color: var(--text); font-weight: 600; }
+  .plan .n { flex: none; width: 24px; height: 24px; margin-top: 1px; border-radius: 6px; display: grid; place-items: center;
+             font-size: 12px; font-weight: 600; background: var(--up-bg); color: var(--up); }
+  .plan li:nth-child(3) .n { background: var(--down-bg); color: var(--down); }
+  .readmore { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: var(--s4); padding-top: var(--s4);
+              border-top: 1px solid var(--border-soft); font-size: var(--fs-xs); color: var(--text-3); }
+  .readmore a { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; color: var(--text-2); }
+  .readmore a::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
+  .readmore a:hover { background: var(--hover); color: var(--text); }
+  .opp { background: var(--peach); border: 1px solid var(--peach-border); border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; min-width: 0; }
+  .opp-q { font-family: var(--serif); font-size: 25px; line-height: 1.25; margin: 14px 0 10px; color: var(--text); }
+  .opp p { font-size: var(--fs-sm); color: var(--text-2); margin: 0; line-height: 1.55; }
+  .opp-link { margin-top: auto; padding-top: var(--s5); font-size: var(--fs-sm); font-weight: 600; color: var(--up); text-decoration: underline; text-underline-offset: 3px; }
+
+  .seg { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; flex: none; }
+  .seg button { border: 0; background: none; padding: 6px 14px; border-radius: 8px; font: inherit; font-size: var(--fs-sm); color: var(--text-3); cursor: pointer; }
+  .seg button.on { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .rank-wrap { overflow-x: auto; margin-top: var(--s4); }
+  table.rank { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+  .rank th { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3);
+             text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .rank td { padding: 13px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+  .rank tbody tr { cursor: pointer; } .rank tbody tr:hover td { background: var(--hover); }
+  .rank .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rank td.num { color: var(--text-3); } .rank td.cur { color: var(--text); font-weight: 700; }
+  .rank .idx { font-family: var(--mono); color: var(--text-3); width: 36px; }
+  .rank .tn { min-width: 240px; } .rank .tn b { display: block; font-weight: 600; } .rank .tn small { color: var(--text-3); font-size: var(--fs-xs); }
+  .spark polyline { fill: none; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+  .spark.up polyline { stroke: var(--up); } .spark.up circle { fill: var(--up); }
+  .spark.down polyline { stroke: var(--down); } .spark.down circle { fill: var(--down); }
+  .cov { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .cov.bad { background: var(--ink); color: var(--bg); } .cov.mid { background: var(--chip); color: var(--text-2); }
+  .cov.ok { border: 1px solid var(--border); color: var(--text-3); font-weight: 500; }
+  .more { display: inline-block; margin-top: var(--s4); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2); }
+  .more:hover { color: var(--text); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: var(--s4); margin: var(--s2) 0 var(--s2); font-size: var(--fs-xs); color: var(--text-2); }
+  .lg { display: inline-flex; align-items: center; gap: 6px; }
+  .lg i { width: 16px; border-top: 2px solid var(--c); }
+  .lg.s2 i { border-top-style: dashed; }
+  .lc { position: relative; }
+  .lc svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .lc .grid { stroke: var(--border-soft); } .lc .ax { fill: var(--text-3); font-size: 11px; font-family: var(--mono); }
+  .lc .ln { fill: none; stroke-width: 2; stroke: var(--c); stroke-linejoin: round; stroke-linecap: round; }
+  .lc .s2.ln { stroke-dasharray: 5 4; }
+  .lc .pt { fill: var(--c); stroke: var(--surface); stroke-width: 2; }
+  .lc .dl { fill: var(--text); font-size: 12px; font-weight: 600; font-family: inherit; }
+  .s0 { --c: var(--series-0); } .s1 { --c: var(--series-1); } .s2 { --c: var(--series-2); }
+  .lc .xh { stroke: var(--text-4); stroke-width: 1; opacity: 0; } .lc g:hover .xh { opacity: 1; }
+  .lc .hit { fill: transparent; }
+  .srow { margin: 14px 0; font-size: var(--fs-md); }
+  .srow > div { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .srow .mono { font-size: var(--fs-xs); color: var(--text-3); }
+  .srow i { display: block; height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; }
+  .srow u { display: block; height: 100%; border-radius: 3px; }
+  u.s-hn { background: var(--series-0); } u.s-so { background: var(--series-1); } u.s-gh { background: var(--series-2); }
+
+  .sec-h { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s4); margin: var(--s10) 0 var(--s4); }
+  .sec-h .more { margin: 0; font-size: 11px; }
+  .ucards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .ucard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+  .u-top { display: flex; justify-content: space-between; gap: var(--s2); align-items: center; }
+  .schip { font-family: var(--mono); font-size: 11px; background: var(--chip); border-radius: 5px; padding: 2px 8px; color: var(--text-2); }
+  .u-cat { font-size: 11px; font-weight: 600; color: var(--up); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ucard h3 { font-size: 15px; font-weight: 600; line-height: 1.4; margin: 4px 0 0; }
+  .ucard p { font-size: var(--fs-sm); color: var(--text-2); margin: 0; line-height: 1.55; }
+  .u-foot { margin-top: auto; padding-top: var(--s2); display: flex; justify-content: space-between; align-items: center; gap: var(--s2); }
+  .u-foot .mono { font-size: 11px; color: var(--text-3); }
+  .u-foot .btn { height: 34px; font-size: var(--fs-sm); }
+
+  .kwp { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--s8); margin-top: var(--s10);
+         background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; }
+  .kchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--s4); }
+  .kchip { font-family: var(--mono); font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; }
+  .runs { margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: var(--fs-sm); }
+  .runs > div { display: flex; justify-content: space-between; gap: var(--s3); }
+  .runs dt { color: var(--text-3); } .runs dd { margin: 0; font-family: var(--mono); font-size: 12px; text-align: right; }
+  .runs .btn { justify-content: center; margin-top: 6px; }
+
+  @media (max-width: 1000px) {
+    .scope { display: none; }
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .row2, .kwp { grid-template-columns: minmax(0, 1fr); }
+    .ucards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fb-head { grid-template-columns: minmax(0, 1fr); } .fb-actions { align-items: flex-start; }
+  }
+  @media (max-width: 680px) {
+    .topnav-in { padding: 0 var(--s4); gap: var(--s2); }
+    .brand2 { font-size: 0; gap: 0; }
+    .wpick { display: none; }
+    .fb { padding: var(--s6) var(--s4) var(--s10); }
+    .fb-h1 { font-size: 32px; }
+    .kpis, .ucards { grid-template-columns: minmax(0, 1fr); }
+    .panel, .opp, .kwp { padding: 18px; }
+    .panel-h { flex-direction: column; }
+    .crumbs-row { padding: 0 var(--s4); }
+  }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -479,42 +646,35 @@ RUN_OVERLAY = """
 
 
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
-          history: list[dict] | None = None, current_week: str | None = None, script: str = "") -> str:
-    hist_links = "".join(
-        f'<a href="/history/{escape(h["week_start"])}" class="{"on" if h["week_start"] == current_week else ""}">'
-        f'{_icon("clock")}{escape(h["week_start"])}{"<small>Latest</small>" if i == 0 else ""}</a>'
-        for i, h in enumerate(history or [])
-    )
-    hist_block = f'<div class="nav-h">Past briefs</div><nav class="nav">{hist_links}</nav>' if hist_links else ""
-    links = [("/", "doc", "Latest brief", "brief"), ("/pain-points", "flame", "Pain points", "points"),
-             ("/topics", "tag", "Topics", "topics"), ("/health", "pulse", "Health", "health")]
-    nav = "".join(_nav_link(href, icon, label, active == key) for href, icon, label, key in links)
-    m_nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
-                    for href, _, label, key in links)
+          history: list[dict] | None = None, current_week: str | None = None, script: str = "",
+          hide_run: bool = False) -> str:
+    tabs = [("/", "This week", "brief"), ("/pain-points", "Pain points", "points"),
+            ("/unresolved", "Unresolved", "unresolved"), ("/topics", "Keywords", "topics")]
+    nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>' for href, label, key in tabs)
+    weeks = "".join(
+        f'<option value="/history/{escape(h["week_start"])}"{" selected" if h["week_start"] == current_week else ""}>'
+        f'Week {_week_no(h["week_start"])}{" · latest" if i == 0 else ""}</option>'
+        for i, h in enumerate(history or []))
+    picker = (f'<label class="wpick"><span class="sr">Choose a brief</span><select onchange="location.href=this.value">'
+              f'{weeks}</select></label>' if len(history or []) > 1 else "")
+    crumb_row = f'<div class="crumbs-row"><div class="crumbs">{crumbs}</div></div>' if crumbs else ""
     return f"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{escape(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 {BASE_CSS}
 </head><body>
-<div class="app">
-  <aside class="side">
-    <div class="brand"><span class="logo">DP</span>Dev Community Pulse</div>
-    <nav class="nav">{nav}</nav>
-    {hist_block}
-    <div class="side-foot">New brief every Friday, 8:30 AM IST.<br>Sources: Hacker News, Stack Overflow, GitHub.</div>
-  </aside>
-  <div class="main">
-    <header class="bar">
-      <div class="crumbs">{crumbs}</div>
-      <div class="right">{actions}</div>
-    </header>
-    <nav class="m-nav">{m_nav}</nav>
-    {body}
-  </div>
-</div>
+<header class="topnav"><div class="topnav-in">
+  <a class="brand2" href="/"><i>{_icon("pulse")}</i>DevPulse</a>
+  <span class="scope">code-review · CI/CD · dev workflow</span>
+  <nav class="tabs">{nav}</nav>
+  <div class="nav-right">{picker}{"" if hide_run else RUN_BUTTON}</div>
+</div></header>
+{crumb_row}
+{body}
+<footer class="foot"><span>DevPulse · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
 {RUN_OVERLAY}
 {script}
 </body></html>"""
@@ -544,7 +704,7 @@ def not_configured(missing: list[str]) -> str:
     </section>
   </div>
 </main>"""
-    return _page("Setup needed · Dev Community Pulse", body,
+    return _page("Setup needed · DevPulse", body,
                  crumbs="<b>Dev Community Pulse</b>")
 
 
@@ -568,85 +728,351 @@ def _meter(n: int, max_m: int) -> str:
     return f'<span class="meter">{n}<i><u style="width:{n * 100 / (max_m or 1):.0f}%"></u></i></span>'
 
 
-def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
-              week_start: str | None, flash: str | None = None) -> str:
-    """Homepage: headline numbers and a short version of every section, each linking to its full page."""
-    is_latest = _is_latest(week_start, history)
-    title = _week_title(week_start)
-    base = f"/brief/{escape(week_start or '')}"
+def _nice(name: str) -> str:
+    return name[:1].upper() + name[1:]
 
-    total = sum(m["mention_count"] for m in metrics_rows)
-    unresolved = sum(m.get("unresolved_count") or 0 for m in metrics_rows)
-    engagement = sum(m.get("engagement") or 0 for m in metrics_rows)
-    top = metrics_rows[0]["pain_point"] if metrics_rows else "—"
-    stats = f"""
-<div class="stats">
-  <div class="stat"><span>Pain points</span><b>{len(metrics_rows)}</b><em>tracked this week</em></div>
-  <div class="stat"><span>Mentions</span><b>{total}</b><em title="{escape(top)}">Top: {escape(top)}</em></div>
-  <div class="stat"><span>Unresolved</span><b>{unresolved}</b><em>{round(unresolved * 100 / total) if total else 0}% of mentions</em></div>
-  <div class="stat"><span>Engagement</span><b>{engagement:,}</b><em>votes + comments</em></div>
-</div>"""
 
-    def card(s: dict, wide: bool = False) -> str:
-        summary, more = _summary(s["body"])
-        foot = f'<div class="sum-f">+{more} more</div>' if more else ""
-        return (f'<a class="sum tone-{s["tone"]}{" wide" if wide else ""}" href="{base}/{s["key"]}">'
-                f'<div class="sum-h"><span class="ic t">{_icon(s["icon"])}</span>{escape(s["label"])}'
-                f'<span class="go">Read more →</span></div>{summary}{foot}</a>')
+def _parse_ts(iso: str | None) -> datetime | None:
+    if not iso:
+        return None
+    try:
+        d = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
-    # Preview of the pain point table; the full one lives on its own page.
-    max_m = max((m["mention_count"] for m in metrics_rows), default=0)
-    preview_rows = "".join(
-        f'<tr><td class="pp">{escape(m["pain_point"])}</td>'
-        f'<td class="hide-sm"><span class="pill {_cat_class(m.get("category") or "Other")}">{escape(m.get("category") or "Other")}</span></td>'
-        f'<td class="n">{_meter(m["mention_count"], max_m)}</td></tr>'
-        for m in metrics_rows[:5]
-    )
-    all_card = (f'<a class="sum tone-ink wide" href="{base}/pain-points">'
-                f'<div class="sum-h"><span class="ic t">{_icon("search")}</span>All pain points'
-                f'<small>{len(metrics_rows)}</small><span class="go">View all →</span></div>'
-                f'<table class="mini"><tbody>{preview_rows}</tbody></table>'
-                + (f'<div class="sum-f">+{len(metrics_rows) - 5} more pain points</div>' if len(metrics_rows) > 5 else "")
-                + '</a>') if metrics_rows and week_start else ""
 
-    sections = parse_brief(brief_html) if week_start else []
-    by_key = {s["key"]: s for s in sections}
-    grid = ""
-    if "overview" in by_key:
-        grid += card(by_key["overview"], wide=True)
-    if "top-pain-points" in by_key:
-        grid += card(by_key["top-pain-points"], wide=True)
-    grid += all_card
-    grid += "".join(card(s) for s in sections if s["key"] not in ("overview", "top-pain-points"))
-    if not grid:
-        grid = '<div class="card wide"><div class="empty">No brief yet. Click <b>Run now</b> to generate the first one.</div></div>'
+def _ist_label(iso: str | None) -> str:
+    d = _parse_ts(iso)
+    return d.astimezone(IST).strftime("%a %d %b, %I:%M %p IST").replace(" 0", " ") if d else "—"
 
-    if is_latest:
-        hour = datetime.now(IST).hour
-        greeting = "Good morning" if 5 <= hour < 12 else "Good afternoon" if 12 <= hour < 17 else "Good evening"
-        eyebrow = f'<span class="dot"></span>Latest brief · {escape(title)}'
-        heading = f"{greeting}, Sumit"
-        lede = ("Here's what developers said this week on Hacker News, Stack Overflow and GitHub. "
-                "Start with the top pain points, then open any card for the details and sources.")
+
+def _next_run_label() -> str:
+    now = datetime.now(IST)
+    run = (now + timedelta(days=(4 - now.weekday()) % 7)).replace(hour=8, minute=30, second=0, microsecond=0)
+    if run <= now:
+        run += timedelta(days=7)
+    return run.strftime("%a %d %b, %I:%M %p IST").replace(" 0", " ")
+
+
+def _ago(iso: str | None) -> str:
+    d = _parse_ts(iso)
+    if not d:
+        return ""
+    days = (datetime.now(timezone.utc) - d).days
+    return "today" if days <= 0 else f"{days} day{'s' if days != 1 else ''} ago"
+
+
+def _week_no(week: str) -> int:
+    return date.fromisoformat(week).isocalendar()[1]
+
+
+def _chg(cur: int, prev: int | None) -> str:
+    """Change badge: rust for up, blue for down."""
+    if prev is None:
+        return '<span class="chg flat">—</span>'
+    if prev == 0:
+        return '<span class="chg up">new</span>' if cur else '<span class="chg flat">0</span>'
+    pct = round((cur - prev) / prev * 100)
+    if pct == 0:
+        return '<span class="chg flat">0%</span>'
+    return f'<span class="chg {"up" if pct > 0 else "down"}">{"▲" if pct > 0 else "▼"} {abs(pct)}%</span>'
+
+
+def _spark(vals: list[int]) -> str:
+    w, h, pad = 88, 26, 4
+    top = max(vals + [1])
+    n = len(vals)
+    xs = [pad + (w - 2 * pad) * (i / (n - 1) if n > 1 else 1) for i in range(n)]
+    ys = [h - pad - (v / top) * (h - 2 * pad) for v in vals]
+    trend = "down" if n > 1 and vals[-1] < vals[-2] else "up"
+    line = (f'<polyline points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))}"/>' if n > 1 else "")
+    return (f'<svg class="spark {trend}" viewBox="0 0 {w} {h}" width="{w}" height="{h}" aria-hidden="true">'
+            f'{line}<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="3"/></svg>')
+
+
+def _cov(n: int, u: int) -> str:
+    if n and u >= n:
+        return '<span class="cov bad">Unsolved</span>'
+    if u:
+        return '<span class="cov mid">Partly solved</span>'
+    return '<span class="cov ok">Solved</span>'
+
+
+_SRC = {"hackernews": ("Hacker News", "s-hn"), "hn": ("Hacker News", "s-hn"),
+        "stackoverflow": ("Stack Overflow", "s-so"), "so": ("Stack Overflow", "s-so"),
+        "github": ("GitHub", "s-gh"), "gh": ("GitHub", "s-gh")}
+
+
+def _src(source: str | None) -> tuple[str, str]:
+    return _SRC.get((source or "").lower(), (source or "Source", "s-gh"))
+
+
+def _plain_text(text: str | None, n: int) -> str:
+    text = re.sub(r"<[^>]+>|```.*?```|`|[*_#>\[\]]", " ", text or "", flags=re.S)
+    return _clip(text, n)
+
+
+def _thread_card(t: dict) -> str:
+    label, cls = _src(t.get("source"))
+    url = t.get("url") or ""
+    safe = escape(url) if url.startswith(("https://", "http://")) else "#"
+    desc = _plain_text(t.get("body"), 150)
+    return (f'<article class="ucard"><div class="u-top"><span class="schip {cls}">{escape(label)}</span>'
+            f'<span class="u-cat">{escape(t.get("category") or "")}</span></div>'
+            f'<h3>{escape(t.get("title") or "Untitled thread")}</h3>'
+            + (f'<p>{escape(desc)}</p>' if desc else "")
+            + f'<div class="u-foot"><span class="mono">{t.get("comments") or 0} comments · ▲ {t.get("score") or 0}'
+              f'{" · " + _ago(t.get("created_at")) if t.get("created_at") else ""}</span>'
+              f'<a class="btn" href="{safe}" target="_blank" rel="noopener noreferrer">Open thread ↗</a></div></article>')
+
+
+def _unresolved(posts: list[dict]) -> list[dict]:
+    return sorted((p for p in posts if p.get("is_unresolved")),
+                  key=lambda p: -((p.get("comments") or 0) + (p.get("score") or 0)))
+
+
+def _line_chart(weeks: list[str], series: list[tuple[str, list[int]]]) -> str:
+    """Top movers over the last weeks: up to 3 lines, one y-axis, crosshair tooltip per week."""
+    w, h, left, top, bottom = 640, 230, 32, 18, 30
+    plot_w, plot_h = w - left - 16, h - top - bottom
+    peak = max([v for _, vals in series for v in vals] + [4])
+    step = max(1, -(-peak // 4))
+    y_max = step * 4
+    n = len(weeks)
+    x = lambda i: left + (plot_w * i / (n - 1) if n > 1 else plot_w / 2)
+    y = lambda v: top + plot_h - v / y_max * plot_h
+    out = [f'<line class="grid" x1="{left}" x2="{w - 16}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+           f'<text class="ax" x="{left - 8}" y="{y(v) + 4:.1f}" text-anchor="end">{v}</text>'
+           for v in range(0, y_max + 1, step)]
+    out += [f'<text class="ax" x="{x(i):.1f}" y="{h - 8}" text-anchor="middle">W{_week_no(wk)}</text>'
+            for i, wk in enumerate(weeks)]
+    for k, (_, vals) in enumerate(series):
+        pts = " ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(vals))
+        if n > 1:
+            out.append(f'<polyline class="ln s{k}" points="{pts}"/>')
+        out.append(f'<circle class="pt s{k}" cx="{x(n - 1):.1f}" cy="{y(vals[-1]):.1f}" r="4"/>')
+    if series:
+        lead = series[0][1][-1]
+        out.append(f'<text class="dl" x="{x(n - 1) - 8:.1f}" y="{y(lead) - 10:.1f}" text-anchor="end">{lead} this week</text>')
+    for i, wk in enumerate(weeks):
+        tip = f"Week {_week_no(wk)}: " + " · ".join(f"{_clip(_nice(name), 28)} {vals[i]}" for name, vals in series)
+        slot = plot_w / max(n - 1, 1) if n > 1 else plot_w
+        out.append(f'<g data-tip="{escape(tip)}" data-x="{x(i) / w * 100:.2f}" data-y="{top / h * 100:.2f}">'
+                   f'<line class="xh" x1="{x(i):.1f}" x2="{x(i):.1f}" y1="{top}" y2="{top + plot_h}"/>'
+                   f'<rect class="hit" x="{x(i) - slot / 2:.1f}" y="{top}" width="{slot:.1f}" height="{plot_h}"/></g>')
+    legend = "".join(f'<span class="lg s{k}"><i></i>{escape(_clip(_nice(name), 34))}</span>' for k, (name, _) in enumerate(series))
+    return (f'<div class="legend">{legend}</div><div class="chart lc"><svg viewBox="0 0 {w} {h}" role="img" '
+            f'aria-label="Mentions per week for the top pain points">{"".join(out)}</svg><div class="tip" hidden></div></div>')
+
+
+def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> str:
+    """The Friday Brief: headline, numbers, sprint plan, ranked pain points, trends, sources, unresolved threads."""
+    if not b:
+        body = f"""<main class="fb">{_flash(flash)}
+  <div class="fb-eyebrow">Friday brief</div><h1 class="fb-h1">Good morning, Sumit.</h1>
+  <p class="fb-sub">There's no brief yet. Click <b>Run now</b> to collect this week's posts and write the first one.</p></main>"""
+        return _page("Friday brief · DevPulse", body, active="brief", history=history, script=CLEAR_RUN_JS)
+
+    week, metrics, prev, posts = b["week"], b["metrics"], b["prev"], b["posts"]
+    is_latest = _is_latest(week, history)
+    total = sum(m["mention_count"] for m in metrics)
+    prev_total = sum(prev.values()) if prev is not None else None
+    start = date.fromisoformat(week)
+    period = f"{start.strftime('%b %d').upper()} – {(start + timedelta(days=6)).strftime('%b %d, %Y').upper()}".replace(" 0", " ")
+
+    # ---- the story: biggest riser if we can compare, otherwise the most-discussed pain point ----
+    top = metrics[0] if metrics else None
+    risers = sorted(((m, m["mention_count"] - prev.get(m["pain_point"], 0)) for m in metrics if prev is not None),
+                    key=lambda x: -x[1])
+    if risers and risers[0][1] > 0 and prev:
+        m, d = risers[0]
+        p0 = prev.get(m["pain_point"], 0)
+        story = f"{_nice(m['pain_point'])} is rising."
+        sub = (f"Mentions went from {p0} to {m['mention_count']}, the biggest jump this week"
+               + (f", while {top['pain_point']} is still the most-discussed pain point." if top is not m else "."))
+    elif top:
+        story = f"{_nice(top['pain_point'])} leads this week."
+        sub = (f"It came up {top['mention_count']} times across Hacker News, Stack Overflow and GitHub, "
+               f"more than any of the other {len(metrics) - 1} pain points we tracked.")
     else:
-        eyebrow = '<span class="dot" style="background:var(--text-4)"></span>Past brief'
-        heading = title
-        lede = "A brief from an earlier week. Open any card for the details and sources."
+        story, sub = "A quiet week.", "No relevant discussions were found for your topics."
+    hour = datetime.now(IST).hour
+    greeting = "Good morning" if 5 <= hour < 12 else "Good afternoon" if 12 <= hour < 17 else "Good evening"
+    heading = f"{greeting}, Sumit. {story}" if is_latest else f"Week {_week_no(week)}. {story}"
+
+    prev_week = b.get("prev_week")
+    compare = (f'<a class="btn" href="/history/{escape(prev_week)}">Compare to week {_week_no(prev_week)}</a>'
+               if prev_week else "")
+
+    # ---- numbers ----
+    new_count = sum(1 for m in metrics if prev is not None and not prev.get(m["pain_point"]))
+    if prev is not None:
+        ups = [(m, m["mention_count"] - prev.get(m["pain_point"], 0)) for m in metrics]
+        up_n = sum(1 for _, d in ups if d > 0)
+        fastest = max(ups, key=lambda x: x[1], default=(None, 0))
+        trend_v, trend_s = (f'{up_n} <small>of {len(metrics)}</small>',
+                            f"Fastest: {escape(_clip(_nice(fastest[0]['pain_point']), 34))}" if fastest[0] and fastest[1] > 0
+                            else "Nothing rose this week")
+        ment_s = f"vs {prev_total} in week {_week_no(prev_week)}"
+        pts_s = f"{new_count} new this week"
+    else:
+        trend_v, trend_s = "—", "Needs two weekly briefs to compare"
+        ment_s, pts_s = "First week tracked", "First week tracked"
+    unresolved = _unresolved(posts)
+    kpis = f"""
+<section class="kpis">
+  <div class="kpi"><div class="l">Pain points tracked</div><div class="v">{len(metrics)} <small>{len({m.get('category') for m in metrics})} categories</small></div><div class="s">{pts_s}</div></div>
+  <div class="kpi"><div class="l">Pain-point mentions</div><div class="v">{total} {_chg(total, prev_total) if prev_total else ''}</div><div class="s">{ment_s}</div></div>
+  <div class="kpi"><div class="l">Topics trending up</div><div class="v">{trend_v}</div><div class="s">{trend_s}</div></div>
+  <div class="kpi dark"><div class="l">Unresolved threads</div><div class="v">{len(unresolved)} <small class="mono">opportunities</small></div><div class="s">No accepted answer or fix yet</div></div>
+</section>"""
+
+    # ---- sprint plan + biggest opportunity ----
+    secs = {s["key"]: s for s in b["sections"]}
+    plan_items = ""
+    if "sprint-actions" in secs:
+        body_html = re.sub(r"\s*[(\[](?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+[)\]]", "", secs["sprint-actions"]["body"], flags=re.S)
+        for i, li in enumerate(re.findall(r"<li>(.*?)</li>", body_html, flags=re.S)[:3], 1):
+            m = re.match(r"\s*(?:<p>)?\s*<strong>(.*?)</strong>\s*:?(.*)", li, flags=re.S)
+            lead, rest = (m.group(1), m.group(2)) if m else ("", li)
+            plan_items += (f'<li><span class="n">{i}</span><span>'
+                           + (f"<b>{escape(_strip_tags(lead))}.</b> " if lead else "")
+                           + f"{escape(_clip(_strip_tags(rest).strip(), 170))}</span></li>")
+    plan = (f'<ol class="plan">{plan_items}</ol>' if plan_items
+            else '<p class="sub">No sprint actions in this brief.</p>')
+    opp_html = ""
+    if "opportunities" in secs:
+        body_html = re.sub(r"\s*[(\[](?:\s*<a [^>]*>.*?</a>\s*,?\s*(?:and\s*)?)+[)\]]", "", secs["opportunities"]["body"], flags=re.S)
+        first = (re.findall(r"<li>(.*?)</li>", body_html, flags=re.S) or [body_html])[0]
+        m = re.match(r"\s*(?:<p>)?\s*<strong>(.*?)</strong>\s*:?(.*)", first, flags=re.S)
+        quote, detail = (_strip_tags(m.group(1)), _strip_tags(m.group(2))) if m else ("", _strip_tags(first))
+        opp_html = (f'<div class="opp-q">“{escape(quote or _clip(detail, 80))}”</div>'
+                    f'<p>{escape(_clip(detail.strip(), 190)) if quote else ""}</p>')
+    elif unresolved:
+        opp_html = f'<div class="opp-q">“{escape(_clip(unresolved[0].get("title") or "", 90))}”</div>'
+    opp = f"""<aside class="opp"><div class="fb-eyebrow">Biggest opportunity</div>
+  {opp_html or '<p>No unresolved problems stood out this week.</p>'}
+  <a class="opp-link" href="/unresolved?week={escape(week)}">See {len(unresolved)} unresolved threads →</a></aside>"""
+    base = f"/brief/{escape(week)}"
+    readmore = "".join(f'<a class="tone-{s["tone"]}" href="{base}/{s["key"]}">{escape(s["label"])}</a>' for s in b["sections"])
+    plan_row = f"""
+<section class="row2">
+  <div class="panel"><div class="panel-h"><h2>What to take into sprint planning</h2><span class="meta">From {len(posts)} threads</span></div>
+    {plan}
+    <div class="readmore"><span>Full brief:</span>{readmore}</div></div>
+  {opp}
+</section>"""
+
+    # ---- ranked table ----
+    weeks = b["weeks"]
+    rows = ""
+    for i, m in enumerate(metrics[:7], 1):
+        name, n = m["pain_point"], m["mention_count"]
+        last = prev.get(name, 0) if prev is not None else None
+        vals = [b["series"].get(name, {}).get(wk, 0) for wk in weeks]
+        href = _point_href(name, week)
+        rows += (f'<tr data-href="{href}" data-vol="{n}" data-grow="{n - (last or 0)}">'
+                 f'<td class="idx">{i:02d}</td>'
+                 f'<td class="tn"><a href="{href}"><b>{escape(_nice(name))}</b></a><small>{escape(m.get("category") or "Other")}</small></td>'
+                 f'<td class="num cur">{n}</td><td class="num">{"—" if last is None else last}</td>'
+                 f'<td>{_chg(n, last)}</td><td>{_spark(vals) if len(weeks) > 1 else chr(8212)}</td>'
+                 f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td></tr>')
+    ranked = f"""
+<section class="panel" style="margin-top:14px">
+  <div class="panel-h"><div><h2>Pain points, ranked</h2>
+    <p class="sub">Mentions this week vs the previous brief, with {f'the shape of the last {len(weeks)} weeks' if len(weeks) > 1 else 'trend lines once a second brief exists'}. Click a row for its history and threads.</p></div>
+    <div class="seg" role="group" aria-label="Sort"><button class="on" data-k="vol">By volume</button><button data-k="grow">By growth</button></div></div>
+  <div class="rank-wrap"><table class="rank" id="rank">
+    <thead><tr><th>#</th><th>Topic · category</th><th class="num">This wk</th><th class="num">Last wk</th><th>Change</th><th>{f"{len(weeks)} wk" if len(weeks) > 1 else "Trend"}</th><th>Status</th></tr></thead>
+    <tbody>{rows}</tbody></table></div>
+  <a class="more" href="{base}/pain-points">View all {len(metrics)} pain points →</a>
+</section>"""
+
+    # ---- trend chart + sources ----
+    movers = [(m["pain_point"], [b["series"].get(m["pain_point"], {}).get(wk, 0) for wk in weeks]) for m in metrics[:3]]
+    chart_note = ('<p class="sub" style="margin-top:8px">Only one weekly brief so far: the lines fill in as each Friday run adds a week.</p>'
+                  if len(weeks) < 2 else "")
+    by_src: dict[str, int] = {}
+    for p in posts:
+        by_src[_src(p.get("source"))[0]] = by_src.get(_src(p.get("source"))[0], 0) + 1
+    n_posts = len(posts) or 1
+    src_rows = "".join(
+        f'<div class="srow"><div><span>{escape(label)}</span><span class="mono">{c} · {round(c * 100 / n_posts)}%</span></div>'
+        f'<i><u class="{_SRC.get(label.lower().replace(" ", ""), ("", "s-gh"))[1]}" style="width:{c * 100 / n_posts:.0f}%"></u></i></div>'
+        for label, c in sorted(by_src.items(), key=lambda x: -x[1]))
+    src_note = (f'<p class="sub">{escape(max(by_src, key=by_src.get))} contributed the most threads this week.</p>' if by_src else
+                '<p class="sub">No threads stored for this week.</p>')
+    trends = f"""
+<section class="row2">
+  <div class="panel"><h2 class="ph">{f'{len(weeks)}-week trend' if len(weeks) > 1 else 'Trend'}, top pain points</h2>{_line_chart(weeks, movers) if movers else ''}{chart_note}</div>
+  <div class="panel"><h2 class="ph">Where it surfaced</h2>{src_rows}{src_note}</div>
+</section>"""
+
+    # ---- unresolved threads ----
+    cards = "".join(_thread_card(t) for t in unresolved[:3])
+    unres = f"""
+<div class="sec-h"><div><h2>Unresolved &amp; underserved</h2>
+  <p class="sub">High-engagement threads where no reply solved the problem: candidate roadmap and content bets.</p></div>
+  <a class="mono more" href="/unresolved?week={escape(week)}">{len(unresolved)} unresolved this week →</a></div>
+<section class="ucards">{cards or '<div class="panel"><p class="sub">Every thread this week has an answer.</p></div>'}</section>"""
+
+    # ---- keywords ----
+    chips = "".join(f'<span class="kchip">{escape(k)}</span>' for t in b["topics"] if t.get("active") for k in t.get("keywords") or [])
+    kw = f"""
+<section class="kwp">
+  <div><h2 class="ph">Monitored keywords</h2>
+    <p class="sub">Searched on Hacker News, Stack Overflow and GitHub every run. Edit them on the Keywords page, no deploy needed.</p>
+    <div class="kchips">{chips or '<span class="sub">No active keywords.</span>'}</div></div>
+  <dl class="runs"><div><dt>This brief</dt><dd>{escape(_ist_label(b.get("created_at")))}</dd></div>
+    <div><dt>Next run</dt><dd>{escape(_next_run_label())}</dd></div>
+    <div><dt>Sources</dt><dd>HN · SO · GitHub</dd></div>
+    <a class="btn" href="/topics">Manage keywords</a></dl>
+</section>"""
+
     body = f"""
-<main class="content narrow">
-  <div>
-    {_flash(flash)}
-    <div class="eyebrow">{eyebrow}</div>
-    <h1>{escape(heading)}</h1>
-    <p class="lede">{lede}</p>
-    {stats}
-    <div class="sgrid">{grid}</div>
-  </div>
+<main class="fb">
+  {_flash(flash)}
+  <header class="fb-head">
+    <div><div class="fb-eyebrow">Friday brief · Week {_week_no(week)} · {period}</div>
+      <h1 class="fb-h1">{escape(heading)}</h1><p class="fb-sub">{escape(sub)}</p></div>
+    <div class="fb-actions"><div class="mono gen">Generated {escape(_ist_label(b.get("created_at")))}</div>
+      <div class="fb-btns">{compare}{RUN_BUTTON}</div></div>
+  </header>
+  {kpis}{plan_row}{ranked}{trends}{unres}{kw}
 </main>"""
-    crumbs = f'<a href="/">Briefs</a><span>/</span><b>{escape(title)}</b>'
-    return _page(f"{title} · Dev Community Pulse", body, active="brief" if is_latest else "",
-                 crumbs=crumbs, actions=RUN_BUTTON, history=history, current_week=week_start,
-                 script=CLEAR_RUN_JS)
+    return _page(f"Week {_week_no(week)} · Friday brief", body, active="brief" if is_latest else "",
+                 history=history, current_week=week, script=CLEAR_RUN_JS + RANK_JS + CHART_JS, hide_run=True)
+
+
+RANK_JS = """<script>
+(() => {
+  const t = document.getElementById('rank'); if (!t) return;
+  const body = t.tBodies[0];
+  body.querySelectorAll('tr').forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a')) location.href = r.dataset.href; }));
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+    [...body.rows].sort((a, c) => c.dataset[b.dataset.k] - a.dataset[b.dataset.k]).forEach(r => body.appendChild(r));
+  }));
+})();
+</script>"""
+
+
+def unresolved_page(b: dict | None, history: list[dict]) -> str:
+    """Every unresolved thread for the week, most-discussed first."""
+    if not b:
+        return dashboard(None, history)
+    items = _unresolved(b["posts"])
+    cards = "".join(_thread_card(t) for t in items)
+    body = f"""
+<main class="fb">
+  <div class="fb-eyebrow">Week {_week_no(b["week"])} · Unresolved</div>
+  <h1 class="fb-h1">Unresolved &amp; underserved</h1>
+  <p class="fb-sub">{len(items)} threads this week where no reply solved the problem, most-discussed first. These are the gaps worth building for.</p>
+  <section class="ucards" style="margin-top:24px">{cards or '<div class="panel"><p class="sub">Every thread this week has an answer.</p></div>'}</section>
+</main>"""
+    return _page(f"Unresolved · Week {_week_no(b['week'])}", body, active="unresolved", history=history,
+                 current_week=b["week"])
 
 
 CLEAR_RUN_JS = """<script>
@@ -870,7 +1296,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
 </main>"""
     crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/brief/{escape(week or "")}/pain-points">All pain points</a>'
               f'<span>/</span><b>{escape(title)}</b>')
-    return _page(f"{title} · Dev Community Pulse", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
+    return _page(f"{title} · DevPulse", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
                  history=history, current_week=week, script=CHART_JS)
 
 
@@ -983,7 +1409,7 @@ def topics_page(topics: list[dict]) -> str:
     <p class="hint">Paused topics are skipped when collecting posts; their history is kept.</p>
   </div>
 </main>"""
-    return _page("Topics · Dev Community Pulse", body, active="topics",
+    return _page("Topics · DevPulse", body, active="topics",
                  crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Topics</b>',
                  actions=RUN_BUTTON)
 
@@ -1014,6 +1440,6 @@ def health_page(groups: list[tuple[str, list[dict]]]) -> str:
     <p class="hint">For monitoring tools, the same status is available as JSON at <a href="/api/health" style="text-decoration:underline">/api/health</a>.</p>
   </div>
 </main>"""
-    return _page("Health · Dev Community Pulse", body, active="health",
+    return _page("Health · DevPulse", body, active="health",
                  crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Health</b>',
                  actions=RUN_BUTTON)

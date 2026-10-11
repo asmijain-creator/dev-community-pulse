@@ -147,28 +147,56 @@ def _history(sb) -> list[dict]:
     return sb.table("digests").select("week_start").order("week_start", desc=True).limit(12).execute().data or []
 
 
+def _bundle(sb, week: str | None = None) -> dict | None:
+    """Everything the Friday brief page needs for one week (the latest when week is None)."""
+    found = _load_week(sb, week)
+    if not found:
+        return None
+    ws, brief_html, metrics = found
+    hist = _history(sb)
+    weeks = sorted(h["week_start"] for h in hist if h["week_start"] <= ws)[-6:] or [ws]
+    prev_week = weeks[-2] if len(weeks) > 1 else None
+    rows = sb.table("weekly_metrics").select("week_start,pain_point,mention_count") \
+        .in_("week_start", weeks).execute().data or []
+    series: dict[str, dict] = {}
+    for r in rows:
+        series.setdefault(r["pain_point"], {})[r["week_start"]] = r["mention_count"]
+    prev = {p: s.get(prev_week, 0) for p, s in series.items() if s.get(prev_week)} if prev_week else None
+    posts = sb.table("posts") \
+        .select("source,title,body,url,score,comments,created_at,is_unresolved,category,pain_point") \
+        .eq("week_start", ws).not_.is_("pain_point", "null").limit(500).execute().data or []
+    topics = sb.table("topics").select("category,keywords,active").order("id").execute().data or []
+    meta = sb.table("digests").select("created_at").eq("week_start", ws).limit(1).execute().data or []
+    return {"week": ws, "prev_week": prev_week, "weeks": weeks, "series": series, "prev": prev,
+            "metrics": metrics, "brief_html": brief_html, "sections": V.parse_brief(brief_html),
+            "posts": posts, "topics": topics, "created_at": meta[0]["created_at"] if meta else None}
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     ok, missing = _env_check()
     if not ok:
         return HTMLResponse(V.not_configured(missing))
     sb = db()
-    week = _load_week(sb)
-    flash = _run_message(request.query_params)
-    if not week:
-        return V.dashboard("", [], _history(sb), None, flash=flash)
-    ws, brief_html, metrics = week
-    return V.dashboard(brief_html, metrics, _history(sb), ws, flash=flash)
+    return V.dashboard(_bundle(sb), _history(sb), flash=_run_message(request.query_params))
 
 
 @app.get("/history/{week}", response_class=HTMLResponse)
 def history_item(week: str):
     sb = db()
-    found = _load_week(sb, week)
-    if not found:
+    b = _bundle(sb, week)
+    if not b:
         raise HTTPException(404, "no brief for that week")
-    ws, brief_html, metrics = found
-    return V.dashboard(brief_html, metrics, _history(sb), ws)
+    return V.dashboard(b, _history(sb))
+
+
+@app.get("/unresolved", response_class=HTMLResponse)
+def unresolved(week: str = ""):
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    sb = db()
+    return V.unresolved_page(_bundle(sb, week or None), _history(sb))
 
 
 @app.get("/pain-points", response_class=HTMLResponse)
