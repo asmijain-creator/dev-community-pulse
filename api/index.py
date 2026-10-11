@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from lib import views as V
 from lib.collectors import collect
 from lib.db import db
+from lib.email_view import build_email
 from lib.gemini_brief import write_brief
 from lib.gemini_tag import tag_all
 from lib.metrics import aggregate, compute_trends, week_start_for
@@ -463,7 +464,7 @@ def _do_run(days_back: int = 7) -> dict:
     # 9. Email (non-fatal if it fails)
     email_status = "skipped"
     try:
-        email_status = _send_email(brief, this_week.isoformat())
+        email_status = _send_email(brief, this_week.isoformat(), metrics)
     except Exception as e:
         print(f"[run] email error: {e}")
         email_status = f"failed: {e}"
@@ -479,7 +480,7 @@ def _do_run(days_back: int = 7) -> dict:
     }
 
 
-def _send_email(brief_md: str, week: str) -> str:
+def _send_email(brief_md: str, week: str, metrics: list[dict]) -> str:
     key = os.getenv("RESEND_API_KEY")
     to = os.getenv("DIGEST_EMAIL_TO")
     if not (key and to):
@@ -487,12 +488,13 @@ def _send_email(brief_md: str, week: str) -> str:
     if resend is None:
         return "resend package missing"
     resend.api_key = key
-    sender = os.getenv("RESEND_FROM", "onboarding@resend.dev")
-    html = md.markdown(brief_md)
+    sender = os.getenv("RESEND_FROM", "Dev Community Pulse <onboarding@resend.dev>")
+    subject, html, text = build_email(brief_md, metrics, week)
     resend.Emails.send({
         "from": sender,
         "to": [to],
-        "subject": f"Dev Community Pulse — week of {week}",
+        "subject": subject,
         "html": html,
+        "text": text,
     })
     return "sent"
