@@ -130,7 +130,7 @@ def health_html():
 
 
 @app.get("/", response_class=HTMLResponse)
-def home():
+def home(request: Request):
     ok, missing = _env_check()
     if not ok:
         return HTMLResponse(V.not_configured(missing))
@@ -147,7 +147,8 @@ def home():
         metrics_rows = m.data or []
     history = sb.table("digests").select("week_start") \
         .order("week_start", desc=True).limit(12).execute()
-    return V.dashboard(md.markdown(brief_md), metrics_rows, history.data or [], ws)
+    return V.dashboard(md.markdown(brief_md), metrics_rows, history.data or [], ws,
+                       flash=_run_message(request.query_params))
 
 
 @app.get("/history/{week}", response_class=HTMLResponse)
@@ -198,8 +199,39 @@ def topics_toggle(request: Request, tid: int):
 
 @app.post("/run-now")
 def run_now(request: Request):
+    """Dashboard button: run the pipeline, then go back to the brief with a summary."""
     _check_admin(request)
-    return _do_run(days_back=7)
+    try:
+        result = _do_run(days_back=7)
+    except Exception as e:
+        print(f"[run-now] failed: {e!r}")
+        return RedirectResponse("/?run=error", status_code=303)
+    if not result.get("ok"):
+        return RedirectResponse("/?run=error", status_code=303)
+    if not result.get("pain_points"):
+        return RedirectResponse("/?run=empty", status_code=303)
+    email = result.get("email", "")
+    email_flag = "sent" if email == "sent" else "skipped" if email.startswith("no ") else "failed"
+    return RedirectResponse(
+        f"/?run=done&posts={int(result.get('collected', 0))}&pp={int(result['pain_points'])}&email={email_flag}",
+        status_code=303)
+
+
+def _run_message(q) -> str | None:
+    """Turn the run-now redirect parameters into a one-line message. Only known values are used."""
+    run = q.get("run")
+    if run == "error":
+        return "The run failed. Check the Vercel function logs, then try again."
+    if run == "empty":
+        return "Run finished, but no relevant posts were found this week. Try adding keywords on the Topics page."
+    if run != "done":
+        return None
+    try:
+        posts, pp = int(q.get("posts", 0)), int(q.get("pp", 0))
+    except ValueError:
+        return "Brief updated."
+    email = {"sent": "and emailed", "skipped": "(email not set up)", "failed": "but the email failed to send"}
+    return f"Brief updated from {posts} posts: {pp} pain points {email.get(q.get('email'), '')}".rstrip() + "."
 
 
 # ---------- cron ----------

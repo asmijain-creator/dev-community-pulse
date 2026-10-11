@@ -188,6 +188,8 @@ BASE_CSS = """
 
   .flash { display: flex; gap: var(--s2); align-items: center; background: var(--flash); border: 1px solid var(--accent-soft);
            padding: var(--s3) var(--s4); border-radius: var(--radius); margin-bottom: var(--s6); font-size: var(--fs-sm); }
+  .flash.err { background: rgba(235,87,87,.1); border-color: rgba(235,87,87,.3); }
+  .flash svg { color: var(--accent); } .flash.err svg { color: var(--red); }
   .muted { color: var(--text-3); }
   .hint { font-size: var(--fs-xs); color: var(--text-4); margin-top: var(--s3); }
 
@@ -418,7 +420,11 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
     else:
         table = '<div class="tbl"><div class="empty">No metrics yet. Click <b>Run now</b> to generate the first brief.</div></div>'
 
-    flash_html = f'<div class="flash">{escape(flash)}</div>' if flash else ""
+    flash_html = ""
+    if flash:
+        bad = "failed" in flash.lower()
+        flash_html = (f'<div class="flash{" err" if bad else ""}" role="status">'
+                      f'{_icon("pulse" if bad else "check")}{escape(flash)}</div>')
     title = f"Week of {week_start}" if week_start else "No brief yet"
     eyebrow = ('<span class="dot"></span>Latest brief' if is_latest
                else '<span class="dot" style="background:var(--text-4)"></span>Past brief')
@@ -446,6 +452,9 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
 def _dashboard_js(week: str) -> str:
     return """<script>
 (() => {
+  // drop ?run=… so a refresh doesn't repeat the message
+  if (location.search.includes('run=')) history.replaceState(null, '', location.pathname);
+
   // sprint checklist, remembered per week in this browser
   const key = 'pulse-todo-""" + re.sub(r"[^0-9-]", "", week) + """';
   let done = {}; try { done = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
