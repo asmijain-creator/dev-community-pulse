@@ -735,7 +735,7 @@ _ACRONYMS = {"ai": "AI", "llm": "LLM", "llms": "LLMs", "ci": "CI", "cd": "CD", "
 
 def _caps(text: str) -> str:
     """Restore acronyms in lower-cased pain point labels: 'ai generated code' -> 'AI generated code'."""
-    return re.sub(r"[a-z]+", lambda m: _ACRONYMS.get(m.group(0), m.group(0)), text)
+    return re.sub(r"\b[a-z]+\b", lambda m: _ACRONYMS.get(m.group(0), m.group(0)), text)
 
 
 def _nice(name: str) -> str:
