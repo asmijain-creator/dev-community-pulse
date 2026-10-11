@@ -84,6 +84,51 @@ def health():
     return {"ok": ok, "missing": missing, "resend": resend is not None}
 
 
+@app.get("/health", response_class=HTMLResponse)
+def health_html():
+    def env(label, key, detail_ok, detail_missing, required=True):
+        ok = bool(os.getenv(key))
+        return {"label": label, "ok": True if ok else (False if required else None),
+                "detail": detail_ok if ok else detail_missing}
+
+    settings = [
+        env("Supabase URL", "SUPABASE_URL", "Set", "Missing: SUPABASE_URL"),
+        env("Supabase key", "SUPABASE_SERVICE_ROLE_KEY", "Set", "Missing: SUPABASE_SERVICE_ROLE_KEY"),
+        env("Gemini API key", "GEMINI_API_KEY", "Set", "Missing: GEMINI_API_KEY"),
+        env("Admin password", "ADMIN_PASSWORD", "Protects Topics and Run now", "Missing: ADMIN_PASSWORD"),
+        env("Cron secret", "CRON_SECRET", "Friday run is protected", "Not set: anyone can trigger the weekly run", False),
+    ]
+
+    data = []
+    if all(os.getenv(k) for k in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY")):
+        try:
+            sb = db()
+            last = sb.table("digests").select("week_start,created_at")                 .order("week_start", desc=True).limit(1).execute().data
+            topics = sb.table("topics").select("active").execute().data or []
+            data.append({"label": "Database connection", "ok": True, "detail": "Connected to Supabase"})
+            data.append({"label": "Latest brief", "ok": True if last else None,
+                         "detail": f"Week of {last[0]['week_start']}" if last else "No brief yet: click Run now"})
+            active = sum(1 for t in topics if t.get("active"))
+            data.append({"label": "Topics", "ok": active > 0,
+                         "detail": f"{active} of {len(topics)} active"})
+        except Exception as e:
+            data.append({"label": "Database connection", "ok": False,
+                         "detail": f"Could not query Supabase ({type(e).__name__})"})
+    else:
+        data.append({"label": "Database connection", "ok": False, "detail": "Supabase settings missing"})
+
+    email_ready = bool(os.getenv("RESEND_API_KEY") and os.getenv("DIGEST_EMAIL_TO"))
+    delivery = [
+        {"label": "Weekly schedule", "ok": True, "detail": "Every Friday 03:00 UTC (8:30 AM IST)"},
+        {"label": "Email delivery", "ok": True if email_ready else None,
+         "detail": "Brief is emailed after each run" if email_ready
+         else "Not set: needs RESEND_API_KEY and DIGEST_EMAIL_TO"},
+        env("GitHub token", "GITHUB_TOKEN", "Higher GitHub search limits", "Optional: raises GitHub search limits", False),
+        env("Stack Exchange key", "SO_KEY", "Higher Stack Overflow quota", "Optional: raises Stack Overflow quota", False),
+    ]
+    return V.health_page([("Settings", settings), ("Data", data), ("Delivery", delivery)])
+
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     ok, missing = _env_check()

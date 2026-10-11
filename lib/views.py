@@ -287,10 +287,10 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
     hist_block = f'<div class="nav-h">Past briefs</div><nav class="nav">{hist_links}</nav>' if hist_links else ""
     nav = (_nav_link("/", "doc", "Latest brief", active == "brief")
            + _nav_link("/topics", "tag", "Topics", active == "topics")
-           + _nav_link("/api/health", "pulse", "Health", False))
+           + _nav_link("/health", "pulse", "Health", active == "health"))
     m_nav = (f'<a href="/" class="{"on" if active == "brief" else ""}">Latest brief</a>'
              f'<a href="/topics" class="{"on" if active == "topics" else ""}">Topics</a>'
-             '<a href="/api/health">Health</a>')
+             f'<a href="/health" class="{"on" if active == "health" else ""}">Health</a>')
     return f"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -343,7 +343,7 @@ def not_configured(missing: list[str]) -> str:
     <section class="card">
       <div class="card-h"><span class="ic amber">{_icon("tag")}</span>Missing environment variables</div>
       <div class="card-b"><ul>{items}</ul>
-        <p class="muted">After redeploying, open <a href="/api/health">/api/health</a> to confirm,
+        <p class="muted">After redeploying, open the <a href="/health">Health</a> page to confirm,
         then come back here and click <b>Run now</b>.</p></div>
     </section>
   </div>
@@ -531,4 +531,35 @@ def topics_page(topics: list[dict]) -> str:
 </main>"""
     return _page("Topics · Dev Community Pulse", body, active="topics",
                  crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Topics</b>',
+                 actions=RUN_BUTTON)
+
+
+def health_page(groups: list[tuple[str, list[dict]]]) -> str:
+    """groups: [(title, [{"label", "ok": True|False|None, "detail"}])]; None = optional and not set."""
+    failing = sum(1 for _, checks in groups for c in checks if c["ok"] is False)
+    cards = ""
+    for title, checks in groups:
+        rows = "".join(
+            f'<tr><td><span class="status {"on" if c["ok"] else ""}" '
+            f'style="{"" if c["ok"] is not False else "color:var(--red)"}">'
+            f'{"OK" if c["ok"] else "Failing" if c["ok"] is False else "Not set"}</span></td>'
+            f'<td style="color:var(--text);font-weight:500">{escape(c["label"])}</td>'
+            f'<td class="muted">{escape(c["detail"])}</td></tr>'
+            for c in checks
+        )
+        cards += f'<h2 class="sec">{escape(title)}</h2><div class="tbl"><table style="table-layout:fixed"><colgroup><col style="width:120px"><col style="width:34%"><col></colgroup><tbody>{rows}</tbody></table></div>'
+    dot, headline = (("var(--green)", "All systems working") if not failing
+                     else ("var(--red)", f"{failing} check{'s' if failing > 1 else ''} failing"))
+    body = f"""
+<main class="content narrow">
+  <div>
+    <div class="eyebrow"><span class="dot" style="background:{dot}"></span>{headline}</div>
+    <h1>Health</h1>
+    <p class="lede">Whether the settings, database and weekly schedule are working. Secret values are never shown.</p>
+    {cards}
+    <p class="hint">For monitoring tools, the same status is available as JSON at <a href="/api/health" style="text-decoration:underline">/api/health</a>.</p>
+  </div>
+</main>"""
+    return _page("Health · Dev Community Pulse", body, active="health",
+                 crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Health</b>',
                  actions=RUN_BUTTON)
