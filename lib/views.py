@@ -728,7 +728,18 @@ def _meter(n: int, max_m: int) -> str:
     return f'<span class="meter">{n}<i><u style="width:{n * 100 / (max_m or 1):.0f}%"></u></i></span>'
 
 
+_ACRONYMS = {"ai": "AI", "llm": "LLM", "llms": "LLMs", "ci": "CI", "cd": "CD", "pr": "PR", "prs": "PRs", "api": "API",
+             "apis": "APIs", "ui": "UI", "ide": "IDE", "sdk": "SDK", "cli": "CLI", "js": "JS", "ts": "TS", "sql": "SQL",
+             "aws": "AWS", "gpu": "GPU", "mcp": "MCP", "json": "JSON", "yaml": "YAML", "ssh": "SSH", "lp": "LP"}
+
+
+def _caps(text: str) -> str:
+    """Restore acronyms in lower-cased pain point labels: 'ai generated code' -> 'AI generated code'."""
+    return re.sub(r"[a-z]+", lambda m: _ACRONYMS.get(m.group(0), m.group(0)), text)
+
+
 def _nice(name: str) -> str:
+    name = _caps(name)
     return name[:1].upper() + name[1:]
 
 
@@ -881,20 +892,14 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
     start = date.fromisoformat(week)
     period = f"{start.strftime('%b %d').upper()} – {(start + timedelta(days=6)).strftime('%b %d, %Y').upper()}".replace(" 0", " ")
 
-    # ---- the story: biggest riser if we can compare, otherwise the most-discussed pain point ----
-    top = metrics[0] if metrics else None
-    risers = sorted(((m, m["mention_count"] - prev.get(m["pain_point"], 0)) for m in metrics if prev is not None),
-                    key=lambda x: -x[1])
-    if risers and risers[0][1] > 0 and prev:
-        m, d = risers[0]
-        p0 = prev.get(m["pain_point"], 0)
-        story = f"{_nice(m['pain_point'])} is rising."
-        sub = (f"Mentions went from {p0} to {m['mention_count']}, the biggest jump this week"
-               + (f", while {top['pain_point']} is still the most-discussed pain point." if top is not m else "."))
-    elif top:
-        story = f"{_nice(top['pain_point'])} leads this week."
-        sub = (f"It came up {top['mention_count']} times across Hacker News, Stack Overflow and GitHub, "
-               f"more than any of the other {len(metrics) - 1} pain points we tracked.")
+    # ---- the summary: what programmers struggled with, the biggest problems, how many are still open ----
+    if metrics:
+        story = "Here's what programmers struggled with this week."
+        named = [f"{_caps(m['pain_point'])} ({m['mention_count']})" for m in metrics[:3]]
+        biggest = ", ".join(named[:-1]) + f" and {named[-1]}" if len(named) > 1 else named[0]
+        open_mentions = sum(m.get("unresolved_count") or 0 for m in metrics)
+        sub = (f"Developers raised {len(metrics)} problems across {total} mentions on Hacker News, Stack Overflow "
+               f"and GitHub. The biggest were {biggest}. {open_mentions} of those mentions are still unresolved.")
     else:
         story, sub = "A quiet week.", "No relevant discussions were found for your topics."
     hour = datetime.now(IST).hour
@@ -1012,7 +1017,7 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
     # ---- unresolved threads ----
     cards = "".join(_thread_card(t) for t in unresolved[:3])
     unres = f"""
-<div class="sec-h"><div><h2>Unresolved &amp; underserved</h2>
+<div class="sec-h"><div><h2>Unresolved</h2>
   <p class="sub">High-engagement threads where no reply solved the problem: candidate roadmap and content bets.</p></div>
   <a class="mono more" href="/unresolved?week={escape(week)}">{len(unresolved)} unresolved this week →</a></div>
 <section class="ucards">{cards or '<div class="panel"><p class="sub">Every thread this week has an answer.</p></div>'}</section>"""
@@ -1067,7 +1072,7 @@ def unresolved_page(b: dict | None, history: list[dict]) -> str:
     body = f"""
 <main class="fb">
   <div class="fb-eyebrow">Week {_week_no(b["week"])} · Unresolved</div>
-  <h1 class="fb-h1">Unresolved &amp; underserved</h1>
+  <h1 class="fb-h1">Unresolved</h1>
   <p class="fb-sub">{len(items)} threads this week where no reply solved the problem, most-discussed first. These are the gaps worth building for.</p>
   <section class="ucards" style="margin-top:24px">{cards or '<div class="panel"><p class="sub">Every thread this week has an answer.</p></div>'}</section>
 </main>"""
