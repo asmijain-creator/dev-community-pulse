@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}History · Community Pulse{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Past briefs</h1>
+  <table>
+    <tr><th>Week</th><th class="num">Relevant posts</th><th class="num">Collected</th><th>Email</th></tr>
+    {% for d in digests %}
+    <tr>
+      <td><a href="/digest/{{ d.period_end }}">{{ d.period_start }} → {{ d.period_end }}</a></td>
+      <td class="num">{{ d.stats.relevant_this_week or 0 }}</td>
+      <td class="num">{{ d.stats.posts_collected or 0 }}</td>
+      <td class="muted">{{ d.stats.email or "" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No briefs yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

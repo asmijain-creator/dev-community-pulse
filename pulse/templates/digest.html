@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ digest.period_end }} · Community Pulse{% endblock %}
+{% block content %}
+<p><a href="/history">← All briefs</a></p>
+<div class="card brief">{{ digest.content_md | md | safe }}</div>
+<div class="card">
+  <h3>All pain points this week</h3>
+  {% include "_metrics.html" %}
+</div>
+{% endblock %}

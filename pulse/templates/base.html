@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Community Pulse{% endblock %}</title>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --head:#1f2d44;
+          --accent:#21877c; --up:#c2410c; --down:#15803d; --warn:#fef3c7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111418; --card:#1a1f26; --ink:#e5e7eb; --muted:#9ca3af; --line:#2d3540; --head:#0b1220;
+            --accent:#3fb6a8; --up:#fb923c; --down:#4ade80; --warn:#3b2f12; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 Inter, "Segoe UI", Arial, sans-serif; }
+  header { background:var(--head); color:#fff; }
+  header .wrap { display:flex; align-items:center; gap:24px; padding-top:14px; padding-bottom:14px; flex-wrap:wrap; }
+  header a { color:#cbd5e1; text-decoration:none; font-size:14px; }
+  header a:hover, header .brand { color:#fff; }
+  .brand { font-weight:700; font-size:16px; margin-right:auto; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 16px; }
+  main.wrap { padding-top:24px; padding-bottom:48px; }
+  .grid { display:grid; grid-template-columns: minmax(0,1.7fr) minmax(0,1fr); gap:20px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:20px; }
+  .card h2:first-child, .card h3:first-child { margin-top:0; }
+  h1 { font-size:24px; margin:0 0 4px; } h2 { font-size:18px; margin:22px 0 8px; } h3 { font-size:15px; }
+  .muted { color:var(--muted); font-size:13px; }
+  a { color:var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; white-space:nowrap; }
+  td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  .scroll { overflow-x:auto; }
+  .grid > div { min-width:0; }
+  .brief { overflow-wrap:break-word; }
+  .brief table { margin-top:8px; display:block; overflow-x:auto; }
+  .brief td { min-width:60px; }
+  .t-rising { color:var(--up); } .t-falling { color:var(--down); }
+  .msg { background:var(--warn); border-radius:6px; padding:10px 14px; margin-bottom:16px; }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:8px 14px; font-size:14px; cursor:pointer; }
+  input[type=text], textarea { width:100%; padding:8px; border:1px solid var(--line); border-radius:6px;
+                               background:var(--bg); color:var(--ink); font:inherit; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  .spark { display:flex; align-items:flex-end; gap:3px; height:34px; }
+  .spark span { width:10px; background:var(--accent); border-radius:2px 2px 0 0; min-height:2px; }
+  .pill { display:inline-block; font-size:12px; padding:1px 8px; border-radius:99px; border:1px solid var(--line); }
+  .ok { color:var(--down); } .bad { color:var(--up); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="brand" href="/">Developer Community Pulse</a>
+  <a href="/">This week</a><a href="/history">History</a><a href="/topics">Topics</a>
+</div></header>
+<main class="wrap">
+  {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

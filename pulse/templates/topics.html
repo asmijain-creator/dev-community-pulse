@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Topics · Community Pulse{% endblock %}
+{% block content %}
+<h1>Monitored topics</h1>
+<p class="muted">Changes apply to the next run. Turning a topic off keeps its history; topics are never deleted.
+Separate keywords with commas. Specific phrases ("flaky tests") work better than single words ("tests").</p>
+
+{% for t in topics %}
+<form class="card" method="post" action="/topics/{{ t.id }}">
+  <h3>{{ t.category }} {% if not t.active %}<span class="pill">off</span>{% endif %}</h3>
+  <label>Description (helps the AI choose the right category)</label>
+  <input type="text" name="description" value="{{ t.description }}">
+  <label>Keywords</label>
+  <textarea name="keywords" rows="2">{{ t.keywords | join(", ") }}</textarea>
+  <label><input type="checkbox" name="active" {% if t.active %}checked{% endif %}> Active</label>
+  <button class="btn" style="margin-top:10px">Save</button>
+</form>
+{% endfor %}
+
+<form class="card" method="post" action="/topics">
+  <h3>Add a topic</h3>
+  <label>Category</label><input type="text" name="category" required>
+  <label>Description</label><input type="text" name="description">
+  <label>Keywords</label><textarea name="keywords" rows="2" required></textarea>
+  <button class="btn" style="margin-top:10px">Add topic</button>
+</form>
+{% endblock %}
