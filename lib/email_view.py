@@ -80,7 +80,7 @@ def build_email(brief_md: str, metrics: list[dict], week: str) -> tuple[str, str
               for i, m in enumerate(top, 1)]
     lines += ["", "WHAT'S CHANGING"] + [f"- {c}" for c in changes]
     lines += ["", "FOCUS THIS WEEK"] + [f"{i}. {a}" for i, a in enumerate(actions, 1)]
-    lines += ["", f"Read the full brief: {url}", "", "Dev Community Pulse",
+    lines += ["", f"Read the full brief: {url}", "", "DevvIT",
               "Sent every Friday at 8:30 AM IST from Hacker News, Stack Overflow and GitHub discussions."]
     text = "\n".join(lines)
 
@@ -110,7 +110,7 @@ def build_email(brief_md: str, metrics: list[dict], week: str) -> tuple[str, str
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid {LINE};border-radius:12px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
 <tr><td style="padding:28px 32px 8px">
-  <div style="font-size:12px;font-weight:600;color:{GREEN}">DEV COMMUNITY PULSE · WEEK OF {escape(pretty_week).upper()}</div>
+  <div style="font-size:12px;font-weight:600;color:{GREEN}">DEVVIT · WEEK OF {escape(pretty_week).upper()}</div>
   <h1 style="margin:10px 0 6px;font-size:22px;line-height:1.3;color:{INK}">Hi Sumit, here's your weekly brief</h1>
   <p style="margin:0;font-size:14px;line-height:1.6;color:{MUTED}">{escape(summary)}</p>
 </td></tr>

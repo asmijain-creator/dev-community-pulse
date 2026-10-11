@@ -33,7 +33,7 @@ try:
 except ImportError:
     resend = None
 
-app = FastAPI(title="Dev Community Pulse")
+app = FastAPI(title="DevvIT")
 
 REQUIRED_ENV = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY"]
 TAG_BATCH_SIZE = 15
@@ -516,7 +516,7 @@ def _send_email(brief_md: str, week: str, metrics: list[dict]) -> str:
     if resend is None:
         return "resend package missing"
     resend.api_key = key
-    sender = os.getenv("RESEND_FROM", "Dev Community Pulse <onboarding@resend.dev>")
+    sender = os.getenv("RESEND_FROM", "DevvIT <onboarding@resend.dev>")
     subject, html, text = build_email(brief_md, metrics, week)
     resend.Emails.send({
         "from": sender,

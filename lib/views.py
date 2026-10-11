@@ -667,14 +667,14 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 {BASE_CSS}
 </head><body>
 <header class="topnav"><div class="topnav-in">
-  <a class="brand2" href="/"><i>{_icon("pulse")}</i>DevPulse</a>
+  <a class="brand2" href="/"><i>{_icon("pulse")}</i>DevvIT</a>
   <span class="scope">code-review · CI/CD · dev workflow</span>
   <nav class="tabs">{nav}</nav>
   <div class="nav-right">{picker}{"" if hide_run else RUN_BUTTON}</div>
 </div></header>
 {crumb_row}
 {body}
-<footer class="foot"><span>DevPulse · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
+<footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
 {RUN_OVERLAY}
 {script}
 </body></html>"""
@@ -704,8 +704,8 @@ def not_configured(missing: list[str]) -> str:
     </section>
   </div>
 </main>"""
-    return _page("Setup needed · DevPulse", body,
-                 crumbs="<b>Dev Community Pulse</b>")
+    return _page("Setup needed · DevvIT", body,
+                 crumbs="<b>DevvIT</b>")
 
 
 def _flash(flash: str | None) -> str:
@@ -883,7 +883,7 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
         body = f"""<main class="fb">{_flash(flash)}
   <div class="fb-eyebrow">Friday brief</div><h1 class="fb-h1">Good morning, Sumit.</h1>
   <p class="fb-sub">There's no brief yet. Click <b>Run now</b> to collect this week's posts and write the first one.</p></main>"""
-        return _page("Friday brief · DevPulse", body, active="brief", history=history, script=CLEAR_RUN_JS)
+        return _page("Friday brief · DevvIT", body, active="brief", history=history, script=CLEAR_RUN_JS)
 
     week, metrics, prev, posts = b["week"], b["metrics"], b["prev"], b["posts"]
     is_latest = _is_latest(week, history)
@@ -1301,7 +1301,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
 </main>"""
     crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/brief/{escape(week or "")}/pain-points">All pain points</a>'
               f'<span>/</span><b>{escape(title)}</b>')
-    return _page(f"{title} · DevPulse", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
+    return _page(f"{title} · DevvIT", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
                  history=history, current_week=week, script=CHART_JS)
 
 
@@ -1414,8 +1414,8 @@ def topics_page(topics: list[dict]) -> str:
     <p class="hint">Paused topics are skipped when collecting posts; their history is kept.</p>
   </div>
 </main>"""
-    return _page("Topics · DevPulse", body, active="topics",
-                 crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Topics</b>',
+    return _page("Topics · DevvIT", body, active="topics",
+                 crumbs='<a href="/">DevvIT</a><span>/</span><b>Topics</b>',
                  actions=RUN_BUTTON)
 
 
@@ -1445,6 +1445,6 @@ def health_page(groups: list[tuple[str, list[dict]]]) -> str:
     <p class="hint">For monitoring tools, the same status is available as JSON at <a href="/api/health" style="text-decoration:underline">/api/health</a>.</p>
   </div>
 </main>"""
-    return _page("Health · DevPulse", body, active="health",
-                 crumbs='<a href="/">Dev Community Pulse</a><span>/</span><b>Health</b>',
+    return _page("Health · DevvIT", body, active="health",
+                 crumbs='<a href="/">DevvIT</a><span>/</span><b>Health</b>',
                  actions=RUN_BUTTON)
