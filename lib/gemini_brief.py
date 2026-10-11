@@ -6,7 +6,7 @@ import os
 from google import genai
 from google.genai import types
 
-MODEL = "gemini-2.5-flash"
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 def write_brief(metrics: list[dict], examples: dict[str, list[dict]]) -> str:

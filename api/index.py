@@ -24,7 +24,7 @@ from lib import views as V
 from lib.collectors import collect
 from lib.db import db
 from lib.gemini_brief import write_brief
-from lib.gemini_tag import tag_batch
+from lib.gemini_tag import tag_all
 from lib.metrics import aggregate, compute_trends, week_start_for
 
 try:
@@ -207,48 +207,67 @@ def _do_run(days_back: int = 7) -> dict:
 
     # 3. Find untagged posts within the window
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).isoformat()
+    MAX_TAG = 90
     untagged = sb.table("posts") \
         .select("id,title,body,created_at,topic_id,score,comments,url") \
         .is_("pain_point", "null") \
         .gte("created_at", cutoff) \
-        .limit(300) \
+        .order("score", desc=True) \
+        .limit(MAX_TAG) \
         .execute().data or []
 
     categories = [t["category"] for t in topics_rows] + ["Other"]
     prior = sb.table("posts").select("pain_point") \
-        .not_.is_("pain_point", "null").limit(500).execute().data or []
+        .not_.is_("pain_point", "null").limit(300).execute().data or []
     prior_labels = sorted({p["pain_point"] for p in prior if p.get("pain_point")})
 
-    # 4. Tag in batches
+    # 4. Tag — all batches in parallel (asyncio.gather w/ semaphore)
     tagged = 0
-    for i in range(0, len(untagged), TAG_BATCH_SIZE):
-        batch = untagged[i:i + TAG_BATCH_SIZE]
-        try:
-            tags = tag_batch(batch, categories, prior_labels)
-        except Exception as e:
-            print(f"[run] tag_batch error: {e}")
-            continue
+    if untagged:
+        tags = asyncio.run(tag_all(untagged, categories, prior_labels,
+                                   batch_size=12, concurrency=5))
         tag_by_id = {t["post_id"]: t for t in tags if t.get("post_id")}
-        for p in batch:
-            t = tag_by_id.get(p["id"])
+        # Build upsert rows (need full row data since upsert replaces)
+        full_untagged = {p["id"]: p for p in untagged}
+        update_rows = []
+        for pid, p in full_untagged.items():
+            t = tag_by_id.get(pid)
             if not t:
                 continue
             created = datetime.fromisoformat(
                 p["created_at"].replace("Z", "+00:00")
             ).date()
             ws = week_start_for(created).isoformat()
+            row = {
+                "id": pid,
+                "source": pid.split(":", 1)[0],
+                "title": p.get("title") or "",
+                "body": p.get("body") or "",
+                "url": p.get("url"),
+                "score": p.get("score") or 0,
+                "comments": p.get("comments") or 0,
+                "created_at": p["created_at"],
+                "topic_id": p.get("topic_id"),
+            }
             if t.get("relevant", True):
-                update = {
+                row.update({
                     "pain_point": (t.get("pain_point") or "").strip().lower()[:100] or None,
                     "category": (t.get("category") or "Other")[:60],
                     "sentiment": t.get("sentiment"),
                     "is_unresolved": bool(t.get("is_unresolved")),
                     "week_start": ws,
-                }
+                })
             else:
-                update = {"pain_point": None, "week_start": None, "category": None}
-            sb.table("posts").update(update).eq("id", p["id"]).execute()
+                row.update({
+                    "pain_point": None, "category": None,
+                    "sentiment": t.get("sentiment"),
+                    "is_unresolved": False, "week_start": None,
+                })
+            update_rows.append(row)
             tagged += 1
+        # Single batched upsert
+        if update_rows:
+            sb.table("posts").upsert(update_rows).execute()
 
     # 5. Aggregate THIS week + LAST week from DB
     this_rows = sb.table("posts") \
