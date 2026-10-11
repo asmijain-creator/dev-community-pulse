@@ -94,7 +94,7 @@ def health_html():
     settings = [
         env("Supabase URL", "SUPABASE_URL", "Set", "Missing: SUPABASE_URL"),
         env("Supabase key", "SUPABASE_SERVICE_ROLE_KEY", "Set", "Missing: SUPABASE_SERVICE_ROLE_KEY"),
-        env("Gemini API key", "GEMINI_API_KEY", "Set", "Missing: GEMINI_API_KEY"),
+        env("AI model key", "GEMINI_API_KEY", "Set", "Missing: GEMINI_API_KEY"),
         env("Admin password", "ADMIN_PASSWORD", "Protects Topics and Run now", "Missing: ADMIN_PASSWORD"),
         env("Cron secret", "CRON_SECRET", "Friday run is protected", "Not set: anyone can trigger the weekly run", False),
     ]
@@ -181,6 +181,27 @@ def pain_points_latest():
         return V.pain_points_page(None, [], [], _history(sb))
     ws, brief_html, metrics = found
     return V.pain_points_page(ws, metrics, V.parse_brief(brief_html), _history(sb))
+
+
+@app.get("/pain-point", response_class=HTMLResponse)
+def pain_point_detail(name: str = "", week: str = ""):
+    if not name:
+        return RedirectResponse("/pain-points", status_code=303)
+    sb = db()
+    weeks = sb.table("weekly_metrics").select("*").eq("pain_point", name) \
+        .order("week_start", desc=True).limit(12).execute().data or []
+    if not weeks:
+        return RedirectResponse("/pain-points", status_code=303)
+    # x-axis = every week that has a brief, so quiet weeks show as 0 instead of disappearing
+    by_week = {w["week_start"]: w for w in weeks}
+    category = weeks[0].get("category")
+    hist = _history(sb)
+    axis = sorted({h["week_start"] for h in hist} | set(by_week))[-12:]
+    weeks = [by_week.get(w, {"week_start": w, "mention_count": 0, "unresolved_count": 0,
+                             "engagement": 0, "category": category}) for w in axis]
+    threads = sb.table("posts").select("source,title,url,score,comments,created_at,is_unresolved") \
+        .eq("pain_point", name).order("created_at", desc=True).limit(40).execute().data or []
+    return V.pain_point_page(name, week or weeks[-1]["week_start"], weeks, threads, hist)
 
 
 @app.get("/brief/{week}/pain-points", response_class=HTMLResponse)

@@ -3,32 +3,42 @@
 Design tokens follow one scale: type 12/13/14/16/20/28px, spacing on a 4px grid.
 """
 import re
+from datetime import datetime, timedelta, timezone
 from html import escape
+from urllib.parse import quote
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 BASE_CSS = """
 <style>
   :root {
-    color-scheme: dark;
+    color-scheme: light;
     /* type scale */
     --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
     /* spacing scale (4px grid) */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px;
-    --radius: 8px; --radius-sm: 6px;
-    /* colours */
-    --bg: #08090a; --panel: #0f1011; --surface: #141517; --hover: #1c1d20;
-    --border: #23252a; --border-soft: #1a1b1e;
-    --text: #f7f8f8; --text-2: #b4b8bf; --text-3: #8a8f98; --text-4: #62666d;
-    --accent: #5e6ad2; --accent-hover: #6e79d9; --accent-soft: rgba(94,106,210,.16);
-    --green: #4cb782; --red: #eb5757; --amber: #f2c94c;
-    --flash: rgba(94,106,210,.12);
+    --radius: 10px; --radius-sm: 8px;
+    /* colours: neutral surfaces, mint for "good / action", red for "problem" */
+    --bg: #ffffff; --panel: #f8f9fb; --surface: #ffffff; --hover: #f3f5f8;
+    --border: #e7e9ee; --border-soft: #f0f1f4;
+    --text: #2f3242; --text-2: #4b4f63; --text-3: #6f7285; --text-4: #9a9cab;
+    --accent: #00a67e; --accent-strong: #007a5c; --accent-soft: rgba(0,166,126,.12);
+    --btn-bg: #007a5c; --btn-hover: #006b50; --btn-fg: #ffffff;
+    --link: #007a5c; --bar: #00a67e; --bar-muted: #9fdcc9;
+    --green: #00a67e; --red: #eb5b3c; --amber: #f5a623; --warn-text: #b86e00;
+    --flash: rgba(0,166,126,.08);
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     :root {
-      color-scheme: light;
-      --bg: #ffffff; --panel: #f7f8f9; --surface: #ffffff; --hover: #f0f1f3;
-      --border: #e3e4e8; --border-soft: #eeeff1;
-      --text: #1b1c1f; --text-2: #3c3f45; --text-3: #6b6f76; --text-4: #9a9ea6;
-      --accent-soft: rgba(94,106,210,.10); --flash: rgba(94,106,210,.08);
+      color-scheme: dark;
+      --bg: #121314; --panel: #17191b; --surface: #1c1e21; --hover: #24272b;
+      --border: #2c2f34; --border-soft: #222528;
+      --text: #f2f3f5; --text-2: #c5c7ce; --text-3: #9a9ca6; --text-4: #6f727b;
+      --accent: #00d09c; --accent-strong: #00d09c; --accent-soft: rgba(0,208,156,.14);
+      --btn-bg: #00d09c; --btn-hover: #1fdcae; --btn-fg: #06261d;
+      --link: #3fdcb2; --bar: #00d09c; --bar-muted: #1f6b57;
+      --green: #00d09c; --red: #f0735a; --amber: #f5b13d; --warn-text: #f5b13d;
+      --flash: rgba(0,208,156,.10);
     }
   }
   * { box-sizing: border-box; }
@@ -49,7 +59,7 @@ BASE_CSS = """
           display: flex; flex-direction: column; padding: var(--s3) var(--s2); font-size: var(--fs-sm); }
   .brand { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) var(--s2) var(--s4); font-weight: 600; }
   .logo { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff;
-          background: linear-gradient(135deg, #5e6ad2, #8b5cf6); font-size: 11px; font-weight: 700; }
+          background: var(--accent); font-size: 11px; font-weight: 700; }
   .nav-h { color: var(--text-4); font-size: var(--fs-xs); font-weight: 500; padding: var(--s4) var(--s2) var(--s1); }
   .nav a { display: flex; align-items: center; gap: var(--s2); padding: 6px var(--s2); border-radius: var(--radius-sm);
            color: var(--text-3); font-weight: 500; }
@@ -112,7 +122,7 @@ BASE_CSS = """
   .card-b li { margin: var(--s2) 0; padding-left: var(--s1); }
   .card-b li::marker { color: var(--text-4); }
   .card-b strong { color: var(--text); font-weight: 600; }
-  .card-b a { color: var(--accent-hover); border-bottom: 1px solid var(--accent-soft); }
+  .card-b a { color: var(--link); border-bottom: 1px solid var(--accent-soft); }
   .card-b a:hover { border-bottom-color: var(--accent); }
   .card-b h3 { font-size: var(--fs-md); color: var(--text); margin: var(--s4) 0 var(--s1); }
 
@@ -124,8 +134,8 @@ BASE_CSS = """
   .todo li::before { content: ""; position: absolute; left: var(--s3); top: 13px; width: 16px; height: 16px; border-radius: 50%;
                      border: 1.5px solid var(--text-4); }
   .todo li.done { color: var(--text-4); text-decoration: line-through; }
-  .todo li.done::before { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.3 2.3 4.7-4.9' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat;
-                          border-color: var(--accent); }
+  .todo li.done::before { background: var(--btn-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.3 2.3 4.7-4.9' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat;
+                          border-color: var(--btn-bg); }
 
   /* ---------- table ---------- */
   .tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s3); }
@@ -152,9 +162,9 @@ BASE_CSS = """
   td.pp::first-letter { text-transform: uppercase; }
   .meter { display: flex; align-items: center; gap: var(--s2); justify-content: flex-end; }
   .meter i { display: block; width: 56px; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
-  .meter i u { display: block; height: 100%; background: var(--accent); }
+  .meter i u { display: block; height: 100%; background: var(--bar); }
   .zero { color: var(--text-4); }
-  .warn { color: var(--amber); }
+  .warn { color: var(--warn-text); font-weight: 500; }
   .tfoot { padding: var(--s2) var(--s4); font-size: var(--fs-xs); color: var(--text-4); border-top: 1px solid var(--border-soft); }
   .empty { padding: var(--s8) var(--s4); text-align: center; color: var(--text-3); }
 
@@ -170,8 +180,8 @@ BASE_CSS = """
          border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit;
          font-size: var(--fs-sm); font-weight: 500; cursor: pointer; white-space: nowrap; }
   .btn:hover { background: var(--hover); }
-  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); font-weight: 600; }
+  .btn-primary:hover { background: var(--btn-hover); }
   .btn[disabled] { opacity: .65; cursor: progress; }
   form.inline { display: inline; margin: 0; }
   .field { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
@@ -194,8 +204,9 @@ BASE_CSS = """
   .hint { font-size: var(--fs-xs); color: var(--text-4); margin-top: var(--s3); }
 
   /* ---------- section tones ---------- */
-  .tone-red { --tone: #eb5757; } .tone-violet { --tone: #9b7cf0; } .tone-green { --tone: #4cb782; }
-  .tone-amber { --tone: #e2a336; } .tone-blue { --tone: #4c9aff; } .tone-indigo { --tone: #5e6ad2; } .tone-gray { --tone: #8a8f98; }
+  /* red = problems, amber = movement, green = opportunity, blue = to-do, ink = data, gray = parked */
+  .tone-red { --tone: var(--red); } .tone-amber { --tone: var(--amber); } .tone-green { --tone: var(--green); }
+  .tone-blue { --tone: #5367ff; } .tone-ink { --tone: var(--text-3); } .tone-gray { --tone: var(--text-4); }
   .ic.t { width: 24px; height: 24px; flex: none; border-radius: 6px; display: grid; place-items: center;
           background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
 
@@ -240,6 +251,39 @@ BASE_CSS = """
   .rail a.on { color: var(--text); border-left-color: var(--tone); }
   .rail a:hover { border-left-color: var(--tone, var(--accent)); }
 
+  /* ---------- pain point detail ---------- */
+  tr[data-href] { cursor: pointer; }
+  tr[data-href] td.pp a:hover { text-decoration: underline; }
+  .chart { position: relative; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s4) var(--s5); margin-top: var(--s6); position: relative; }
+  .chart-card h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+  .chart-card .sub { color: var(--text-3); font-size: var(--fs-xs); margin: 2px 0 var(--s3); }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart .grid { stroke: var(--border-soft); stroke-width: 1; }
+  .chart .base { stroke: var(--border); stroke-width: 1; }
+  .chart .ax { fill: var(--text-3); font-size: 11px; font-family: inherit; }
+  .chart .val { fill: var(--text); font-size: 12px; font-weight: 600; font-family: inherit; }
+  .chart .bar { fill: var(--bar-muted); } .chart .bar.cur { fill: var(--bar); }
+  .chart .hit { fill: transparent; cursor: default; }
+  .chart .hit:hover + .bar, .chart g:hover .bar { filter: brightness(.92); }
+  .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); font-size: var(--fs-xs);
+         padding: 6px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); margin-top: -8px; line-height: 1.45; }
+  .tip[hidden] { display: none; }
+  details.tv { margin-top: var(--s3); font-size: var(--fs-sm); }
+  details.tv summary { cursor: pointer; color: var(--text-3); }
+  details.tv table { margin-top: var(--s2); }
+  .threads { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .thread { display: block; padding: var(--s3) var(--s5); border-bottom: 1px solid var(--border-soft); }
+  .thread:last-child { border-bottom: 0; }
+  .thread:hover { background: var(--hover); }
+  .thread b { display: block; font-weight: 500; color: var(--text); margin: 4px 0 2px; }
+  .thread .meta { display: flex; flex-wrap: wrap; gap: var(--s3); font-size: var(--fs-xs); color: var(--text-3); align-items: center; }
+  .src { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--hover); color: var(--text-2); }
+  .src.hackernews, .src.hn { color: #c2410c; } .src.stackoverflow, .src.so { color: #b45309; } .src.github, .src.gh { color: var(--text); }
+  .st-open { color: var(--warn-text); font-weight: 500; } .st-done { color: var(--green); font-weight: 500; }
+  .stat em span { display: inline; font-size: inherit; font-weight: 600; color: var(--text-3); }
+  .stat em span.up, .up { color: var(--red); } .stat em span.down, .down { color: var(--green); }
+
   /* ---------- run progress ---------- */
   .runbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--s4);
             background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
@@ -262,7 +306,7 @@ BASE_CSS = """
   .steps li.done { color: var(--text-3); }
   .steps li.done::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.3 2.3 4.7-4.9' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/11px no-repeat; }
   .run-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
-  .run-bar u { display: block; height: 100%; width: 0; background: var(--accent); transition: width .5s linear; }
+  .run-bar u { display: block; height: 100%; width: 0; background: var(--bar); transition: width .5s linear; }
   @media (max-width: 860px) { .sgrid { grid-template-columns: minmax(0, 1fr); } .pn small { display: none; } }
 
   /* ---------- responsive ---------- */
@@ -308,15 +352,23 @@ def _icon(name: str) -> str:
 SECTIONS = [
     ("overview", "Overview", "zap", "gray"),
     ("top-pain-points", "Top pain points", "flame", "red"),
-    ("trending", "Trending", "trend", "violet"),
+    ("trending", "Trending", "trend", "amber"),
     ("opportunities", "Opportunities", "target", "green"),
-    ("concerns", "Concerns to watch", "shield", "amber"),
+    ("out-of-scope", "Out of scope", "shield", "gray"),
     ("sprint-actions", "Sprint actions", "check", "blue"),
 ]
 _SECTION = {s[0]: s for s in SECTIONS}
+SECTION_INTRO = {
+    "overview": "The week at a glance.",
+    "top-pain-points": "The problems developers mentioned most this week, with links to the original threads.",
+    "trending": "What moved compared with last week. A topic only counts as a trend once it reaches 3 mentions.",
+    "opportunities": "Problems that are still unsolved. These are the gaps worth building for.",
+    "out-of-scope": "Complaints and doubts outside what we're building right now. Kept for context, not for action.",
+    "sprint-actions": "Concrete next steps for Monday's sprint planning, each tied to a pain point.",
+}
 # Checked in this order, so "Unresolved pain points" lands in Opportunities, not Top pain points.
 _MATCH = [
-    ("concerns", ("concern", "objection")),
+    ("out-of-scope", ("scope", "concern", "objection")),
     ("sprint-actions", ("action",)),
     ("trending", ("trend",)),
     ("opportunities", ("unsolved", "unresolved", "opportunit", "gap")),
@@ -391,10 +443,10 @@ RUN_OVERLAY = """
     <p class="run-note" id="run-note">Usually takes about a minute. Keep this tab open: the brief reloads here when it's ready.</p>
     <ol class="steps" id="run-steps">
       <li data-at="0">Collecting posts from Hacker News, Stack Overflow and GitHub</li>
-      <li data-at="12">Tagging each post's pain point with Gemini</li>
-      <li data-at="40">Counting mentions and trends against last week</li>
-      <li data-at="48">Writing the brief</li>
-      <li data-at="70">Saving it and sending the email</li>
+      <li data-at="12">Reading each post and naming its pain point</li>
+      <li data-at="40">Comparing mentions with last week</li>
+      <li data-at="48">Writing the summary</li>
+      <li data-at="70">Saving it and emailing you</li>
     </ol>
     <div class="run-bar"><u id="run-bar"></u></div>
   </div>
@@ -470,7 +522,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 
 RUN_BUTTON = (
     '<form class="inline" method="post" action="/run-now" data-run>'
-    '<button class="btn btn-primary" type="submit" title="Fetches the last 7 days, tags posts with Gemini and writes a new brief">'
+    '<button class="btn btn-primary" type="submit" title="Collects the last 7 days of posts and writes a fresh brief">'
     f'{_icon("play")}<span> Run now</span></button></form>'
 )
 
@@ -550,7 +602,7 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
         f'<td class="n">{_meter(m["mention_count"], max_m)}</td></tr>'
         for m in metrics_rows[:5]
     )
-    all_card = (f'<a class="sum tone-indigo wide" href="{base}/pain-points">'
+    all_card = (f'<a class="sum tone-ink wide" href="{base}/pain-points">'
                 f'<div class="sum-h"><span class="ic t">{_icon("search")}</span>All pain points'
                 f'<small>{len(metrics_rows)}</small><span class="go">View all →</span></div>'
                 f'<table class="mini"><tbody>{preview_rows}</tbody></table>'
@@ -569,15 +621,24 @@ def dashboard(brief_html: str, metrics_rows: list[dict], history: list[dict],
     if not grid:
         grid = '<div class="card wide"><div class="empty">No brief yet. Click <b>Run now</b> to generate the first one.</div></div>'
 
-    eyebrow = ('<span class="dot"></span>Latest brief' if is_latest
-               else '<span class="dot" style="background:var(--text-4)"></span>Past brief')
+    if is_latest:
+        hour = datetime.now(IST).hour
+        greeting = "Good morning" if 5 <= hour < 12 else "Good afternoon" if 12 <= hour < 17 else "Good evening"
+        eyebrow = f'<span class="dot"></span>Latest brief · {escape(title)}'
+        heading = f"{greeting}, Sumit"
+        lede = ("Here's what developers said this week on Hacker News, Stack Overflow and GitHub. "
+                "Start with the top pain points, then open any card for the details and sources.")
+    else:
+        eyebrow = '<span class="dot" style="background:var(--text-4)"></span>Past brief'
+        heading = title
+        lede = "A brief from an earlier week. Open any card for the details and sources."
     body = f"""
 <main class="content narrow">
   <div>
     {_flash(flash)}
     <div class="eyebrow">{eyebrow}</div>
-    <h1>{escape(title)}</h1>
-    <p class="lede">The short version of what developers raised on Hacker News, Stack Overflow and GitHub. Open any card for the full details and sources.</p>
+    <h1>{escape(heading)}</h1>
+    <p class="lede">{lede}</p>
     {stats}
     <div class="sgrid">{grid}</div>
   </div>
@@ -600,7 +661,7 @@ def _rail(week: str, sections: list[dict], current: str) -> str:
         f'<a href="{base}/{s["key"]}" class="tone-{s["tone"]}{" on" if s["key"] == current else ""}">{escape(s["label"])}</a>'
         for s in sections
     )
-    links += f'<a href="{base}/pain-points" class="tone-indigo{" on" if current == "pain-points" else ""}">All pain points</a>'
+    links += f'<a href="{base}/pain-points" class="tone-ink{" on" if current == "pain-points" else ""}">All pain points</a>'
     return f'<aside class="rail"><h4>In this brief</h4>{links}</aside>'
 
 
@@ -615,8 +676,8 @@ def section_page(week: str, sections: list[dict], key: str, history: list[dict])
                  if i + 1 < len(sections) else f'<a class="pn r" href="{base}/pain-points"><small>Next</small>All pain points →</a>')
     todo = " todo" if key == "sprint-actions" else ""
     hint = '<p class="hint">Click an action to tick it off. Ticks are saved in this browser.</p>' if todo else ""
-    note = ('<p class="lede">Recurring complaints and doubts developers raise about code review tools. '
-            'Useful background, not a priority list.</p>' if key == "concerns" else "")
+    note = f'<p class="lede">{SECTION_INTRO[key]}</p>' if key in SECTION_INTRO else ""
+
     title = _week_title(week)
     body = f"""
 <main class="content">
@@ -644,9 +705,10 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
     for m in metrics_rows:
         cat = m.get("category") or "Other"
         n, u, e = m["mention_count"], m.get("unresolved_count") or 0, m.get("engagement") or 0
+        href = _point_href(m["pain_point"], week)
         rows_html += (
-            f'<tr data-cat="{escape(cat)}">'
-            f'<td class="pp">{escape(m["pain_point"])}</td>'
+            f'<tr data-cat="{escape(cat)}" data-href="{href}">'
+            f'<td class="pp"><a href="{href}">{escape(m["pain_point"])}</a></td>'
             f'<td><span class="pill {_cat_class(cat)}">{escape(cat)}</span></td>'
             f'<td class="n" data-v="{n}">{_meter(n, max_m)}</td>'
             f'<td class="n {"warn" if u else "zero"}" data-v="{u}">{u}</td>'
@@ -677,8 +739,8 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
 <main class="content{"" if week else " narrow"}">
   <div>
     {back}
-    <h1 class="sec-title tone-indigo"><span class="ic t">{_icon("search")}</span>All pain points</h1>
-    <p class="lede">Every problem developers raised in the {escape(title.lower())}, counted from the collected posts.</p>
+    <h1 class="sec-title tone-ink"><span class="ic t">{_icon("search")}</span>All pain points</h1>
+    <p class="lede">Every problem developers raised in the {escape(title.lower())}. Click a row to see its history and the threads behind it.</p>
     {table}
   </div>
   {_rail(week, sections, "pain-points") if week else ""}
@@ -688,6 +750,145 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
               + "<b>All pain points</b>")
     return _page(f"All pain points · {title}", body, active="points" if _is_latest(week, history) else "",
                  crumbs=crumbs, actions=RUN_BUTTON, history=history, current_week=week, script=TABLE_JS)
+
+
+def _point_href(name: str, week: str | None) -> str:
+    return escape(f"/pain-point?name={quote(name)}" + (f"&week={quote(week)}" if week else ""))
+
+
+def _short_date(week: str) -> str:
+    try:
+        return datetime.strptime(week, "%Y-%m-%d").strftime("%b %d")
+    except ValueError:
+        return week
+
+
+def _bar_chart(points: list[dict], current: str | None) -> str:
+    """Mentions per week as an SVG bar chart: one series, thin bars, rounded tops, hover tooltips."""
+    w, h, left, top, bottom = 640, 200, 28, 20, 26
+    plot_w, plot_h = w - left - 8, h - top - bottom
+    top_val = max([p["mention_count"] for p in points] + [3])
+    step = max(1, -(-top_val // 3))          # 3 gridlines, whole numbers
+    y_max = step * 3
+    slot = plot_w / max(len(points), 1)
+    bw = min(40, slot * 0.56)
+    y = lambda v: top + plot_h - v / y_max * plot_h
+    parts = [f'<line class="grid" x1="{left}" x2="{w - 8}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+             f'<text class="ax" x="{left - 8}" y="{y(v) + 4:.1f}" text-anchor="end">{v}</text>'
+             for v in range(step, y_max + 1, step)]
+    parts.append(f'<line class="base" x1="{left}" x2="{w - 8}" y1="{y(0):.1f}" y2="{y(0):.1f}"/>'
+                 f'<text class="ax" x="{left - 8}" y="{y(0) + 4:.1f}" text-anchor="end">0</text>')
+    for i, p in enumerate(points):
+        v = p["mention_count"]
+        cx = left + slot * i + slot / 2
+        x0, x1, yt, yb = cx - bw / 2, cx + bw / 2, y(v), y(0)
+        r = min(4, (yb - yt) / 2, bw / 2)
+        bar = (f"M{x0:.1f},{yb:.1f} V{yt + r:.1f} Q{x0:.1f},{yt:.1f} {x0 + r:.1f},{yt:.1f} "
+               f"H{x1 - r:.1f} Q{x1:.1f},{yt:.1f} {x1:.1f},{yt + r:.1f} V{yb:.1f} Z") if v else ""
+        cur = p["week_start"] == current
+        tip = (f'Week of {_short_date(p["week_start"])}: {v} mention{"s" if v != 1 else ""}, '
+               f'{p.get("unresolved_count") or 0} unresolved')
+        parts.append(
+            f'<g data-tip="{escape(tip)}" data-x="{cx / w * 100:.2f}" data-y="{yt / h * 100:.2f}">'
+            f'<rect class="hit" x="{cx - slot / 2:.1f}" y="{top}" width="{slot:.1f}" height="{plot_h}"/>'
+            + (f'<path class="bar{" cur" if cur else ""}" d="{bar}"/>' if bar else "")
+            + (f'<text class="val" x="{cx:.1f}" y="{yt - 6:.1f}" text-anchor="middle">{v}</text>' if cur else "")
+            + f'<text class="ax" x="{cx:.1f}" y="{h - 6}" text-anchor="middle">{_short_date(p["week_start"])}</text></g>')
+    return (f'<div class="chart"><svg viewBox="0 0 {w} {h}" role="img" aria-label="Mentions per week">'
+            f'{"".join(parts)}</svg><div class="tip" hidden></div></div>')
+
+
+def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: list[dict], history: list[dict]) -> str:
+    """One pain point: headline numbers, mentions per week, and the threads it came from."""
+    cur = next((p for p in weeks if p["week_start"] == week), weeks[-1] if weeks else None)
+    idx = weeks.index(cur) if cur else -1
+    prev = weeks[idx - 1] if idx > 0 else None
+    n = cur["mention_count"] if cur else 0
+    category = (cur or {}).get("category") or "Other"
+    if prev:
+        d = n - prev["mention_count"]
+        change = (f'<span class="{"up" if d > 0 else "down" if d < 0 else ""}">'
+                  f'{"↑" if d > 0 else "↓" if d < 0 else "→"} {abs(d) if d else "no change"}</span> vs previous brief')
+    else:
+        change = "first week tracked"
+    stats = f"""
+<div class="stats">
+  <div class="stat"><span>Mentions</span><b>{n}</b><em>{change}</em></div>
+  <div class="stat"><span>Unresolved</span><b>{(cur or {}).get("unresolved_count") or 0}</b><em>threads without a fix</em></div>
+  <div class="stat"><span>Engagement</span><b>{(cur or {}).get("engagement") or 0:,}</b><em>votes + comments</em></div>
+  <div class="stat"><span>Weeks seen</span><b>{sum(1 for p in weeks if p["mention_count"])}</b><em>of the last {len(weeks)} tracked</em></div>
+</div>"""
+    note = ('<p class="hint">Tracking started this week. A new bar is added every Friday.</p>'
+            if len(weeks) < 2 else "")
+    table_rows = "".join(
+        f'<tr><td>{escape(p["week_start"])}</td><td class="n">{p["mention_count"]}</td>'
+        f'<td class="n">{p.get("unresolved_count") or 0}</td><td class="n">{p.get("engagement") or 0:,}</td></tr>'
+        for p in reversed(weeks))
+    chart = f"""
+<section class="chart-card">
+  <h3>Mentions per week</h3>
+  <p class="sub">How often developers raised this, week by week. The highlighted bar is the week you're viewing.</p>
+  {_bar_chart(weeks, week)}
+  {note}
+  <details class="tv"><summary>Show as a table</summary>
+    <div class="tbl"><table><thead><tr><th>Week</th><th class="n">Mentions</th><th class="n">Unresolved</th><th class="n">Engagement</th></tr></thead>
+    <tbody>{table_rows}</tbody></table></div></details>
+</section>"""
+
+    labels = {"hackernews": "Hacker News", "hn": "Hacker News", "stackoverflow": "Stack Overflow",
+              "so": "Stack Overflow", "github": "GitHub", "gh": "GitHub"}
+    items = ""
+    for t in threads:
+        src = (t.get("source") or "").lower()
+        state = ('<span class="st-open">Unresolved</span>' if t.get("is_unresolved")
+                 else '<span class="st-done">Resolved</span>')
+        url = t.get("url") or ""
+        safe_url = escape(url) if url.startswith(("https://", "http://")) else "#"
+        items += (f'<a class="thread" href="{safe_url}" target="_blank" rel="noopener noreferrer">'
+                  f'<div class="meta"><span class="src {escape(src)}">{escape(labels.get(src, src or "Source"))}</span>'
+                  f'<span>{escape((t.get("created_at") or "")[:10])}</span></div>'
+                  f'<b>{escape(t.get("title") or "Untitled thread")}</b>'
+                  f'<div class="meta"><span>▲ {t.get("score") or 0}</span><span>{t.get("comments") or 0} comments</span>{state}</div></a>')
+    threads_html = (f'<div class="threads">{items}</div>' if items
+                    else '<div class="tbl"><div class="empty">No threads stored for this pain point.</div></div>')
+
+    title = name[:1].upper() + name[1:]
+    back = (f'<a class="back" href="/brief/{escape(week)}/pain-points">← All pain points</a>' if week
+            else '<a class="back" href="/pain-points">← All pain points</a>')
+    body = f"""
+<main class="content narrow">
+  <div>
+    {back}
+    <h1>{escape(title)}</h1>
+    <p class="lede" style="margin-bottom:var(--s6)"><span class="pill {_cat_class(category)}">{escape(category)}</span>
+      &nbsp;{escape(_week_title(week)) if week else ""}</p>
+    {stats}
+    {chart}
+    <h2 class="sec">Threads behind it <small>{len(threads)}</small></h2>
+    {threads_html}
+  </div>
+</main>"""
+    crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/brief/{escape(week or "")}/pain-points">All pain points</a>'
+              f'<span>/</span><b>{escape(title)}</b>')
+    return _page(f"{title} · Dev Community Pulse", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
+                 history=history, current_week=week, script=CHART_JS)
+
+
+CHART_JS = """<script>
+(() => {
+  // per-bar tooltip; hit area is the whole week column
+  document.querySelectorAll('.chart').forEach(chart => {
+    const tip = chart.querySelector('.tip');
+    chart.querySelectorAll('g[data-tip]').forEach(g => {
+      g.addEventListener('mouseenter', () => {
+        tip.textContent = g.dataset.tip; tip.hidden = false;
+        tip.style.left = g.dataset.x + '%'; tip.style.top = g.dataset.y + '%';
+      });
+      g.addEventListener('mouseleave', () => tip.hidden = true);
+    });
+  });
+})();
+</script>"""
 
 
 def _todo_js(week: str) -> str:
@@ -723,6 +924,7 @@ TABLE_JS = """<script>
     count.textContent = shown === rows.length ? rows.length + ' pain points' : shown + ' of ' + rows.length + ' pain points';
   };
   q.addEventListener('input', apply);
+  rows.forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a')) location.href = r.dataset.href; }));
   document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
     document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
     cat = c.dataset.cat; apply();
