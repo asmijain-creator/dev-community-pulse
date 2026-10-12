@@ -266,8 +266,16 @@ def watchlist():
     return V.watchlist_page(_history(db()))
 
 
+@app.get("/recent", response_class=HTMLResponse)
+def recent():
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    return V.recent_page(_history(db()))
+
+
 @app.get("/api/watchlist", response_class=HTMLResponse)
-def watchlist_cards(n: list[str] = Query(default=[]), compact: int = 0):
+def watchlist_cards(n: list[str] = Query(default=[]), compact: int = 0, mode: str = "cards"):
     """Latest numbers for the watched pain points (names come from the browser's watchlist)."""
     names = list(dict.fromkeys(x.strip()[:200] for x in n if x.strip()))[:50]
     sb = db()
@@ -277,7 +285,8 @@ def watchlist_cards(n: list[str] = Query(default=[]), compact: int = 0):
         rows = sb.table("weekly_metrics") \
             .select("week_start,pain_point,category,mention_count,unresolved_count,engagement") \
             .in_("pain_point", names).in_("week_start", weeks).execute().data or []
-    return V.watch_cards(names, weeks, rows, compact=bool(compact))
+    mode = "compact" if compact else mode if mode in ("cards", "rows", "feature") else "cards"
+    return V.watch_cards(names, weeks, rows, mode=mode)
 
 
 class DeviQuestion(BaseModel):
