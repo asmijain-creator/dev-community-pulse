@@ -2,7 +2,7 @@
 
 The /api/run-digest endpoint is hit by Vercel Cron every Friday 03:00 UTC
 (08:30 IST). It can also be invoked manually from the dashboard via
-the /run-now button (admin-password protected).
+the /run-now button (open, no sign-in).
 """
 import asyncio
 import base64
@@ -115,7 +115,7 @@ def health_html():
         env("Supabase URL", "SUPABASE_URL", "Set", "Missing: SUPABASE_URL"),
         env("Supabase key", "SUPABASE_SERVICE_ROLE_KEY", "Set", "Missing: SUPABASE_SERVICE_ROLE_KEY"),
         env("AI model key", "GEMINI_API_KEY", "Set", "Missing: GEMINI_API_KEY"),
-        env("Admin password", "ADMIN_PASSWORD", "Protects Topics and Run now", "Missing: ADMIN_PASSWORD"),
+        env("Admin password", "ADMIN_PASSWORD", "Protects Topics and workspace edits", "Missing: ADMIN_PASSWORD"),
         env("Cron secret", "CRON_SECRET", "Friday run is protected", "Not set: anyone can trigger the weekly run", False),
     ]
 
@@ -546,8 +546,7 @@ def topics_toggle(request: Request, tid: int):
 
 @app.post("/run-now")
 def run_now(request: Request):
-    """Dashboard button: run the pipeline, then go back to the brief with a summary."""
-    _check_admin(request)
+    """Dashboard button: run the pipeline, then go back to the brief with a summary. No sign-in needed."""
     try:
         result = _do_run(days_back=7)
     except Exception as e:

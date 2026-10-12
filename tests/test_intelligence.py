@@ -182,3 +182,11 @@ def test_second_run_is_skipped_while_one_is_running(monkeypatch):
 def test_short_tech_terms_count_for_relevance():
     posts = [post("Our CI/CD pipeline breaks on every PR"), post("Docker image size")]
     assert [p["title"] for p in devi.rank_relevant("CI/CD integration problems", posts)] == ["Our CI/CD pipeline breaks on every PR"]
+
+
+def test_run_now_needs_no_sign_in(monkeypatch):
+    from fastapi.testclient import TestClient
+    import api.index as w
+    monkeypatch.setattr(w, "_do_run", lambda **k: {"skipped": True})
+    r = TestClient(w.app).post("/run-now", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/?run=busy"
