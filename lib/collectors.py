@@ -139,10 +139,12 @@ async def fetch_gh(client: httpx.AsyncClient, keyword: str, since_date: str) -> 
     return out
 
 
-async def collect(topics: list[dict], days_back: int = 7) -> list[dict]:
+async def collect(topics: list[dict], days_back: int = 7, stats: dict | None = None) -> list[dict]:
     """
-    topics: [{id, category, keywords: [str]}].
-    Returns deduped posts with topic_id attached.
+    topics: [{id, category, keywords: [str], exclude_terms?: [str]}].
+    Returns deduped posts with topic_id attached. Posts containing one of the topic's
+    exclude_terms are dropped. If `stats` is given it is filled with per-source query,
+    failure and post counts (used for the data-coverage checks).
     """
     since = datetime.now(timezone.utc) - timedelta(days=days_back)
     since_ts = int(since.timestamp())
@@ -158,16 +160,27 @@ async def collect(topics: list[dict], days_back: int = 7) -> list[dict]:
                 jobs.append(("gh", kw, t["id"], fetch_gh(client, kw, since_date)))
         results = await asyncio.gather(*(j[3] for j in jobs), return_exceptions=True)
 
+    excludes = {t["id"]: [e.lower() for e in (t.get("exclude_terms") or []) if e.strip()] for t in topics}
+    per_source = {s: {"queries": 0, "failed": 0, "posts": 0, "excluded": 0} for s in ("hn", "so", "gh")}
     dedup: dict[str, dict] = {}
     for (src, kw, tid, _), res in zip(jobs, results):
+        per_source[src]["queries"] += 1
         if isinstance(res, Exception):
+            per_source[src]["failed"] += 1
             print(f"[collect] {src} '{kw}' failed: {res}")
             continue
         for p in res:
+            text = f"{p.get('title') or ''} {p.get('body') or ''}".lower()
+            if any(e in text for e in excludes.get(tid, [])):
+                per_source[src]["excluded"] += 1
+                continue
             if p["id"] in dedup:
                 # Already seen — but keep the first topic assignment
                 continue
             p["topic_id"] = tid
             p["matched_keyword"] = kw
             dedup[p["id"]] = p
+            per_source[src]["posts"] += 1
+    if stats is not None:
+        stats["sources"] = per_source
     return list(dedup.values())

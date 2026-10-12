@@ -569,6 +569,81 @@ BASE_CSS = """
   #rv-more .wrow { grid-template-columns: minmax(0, 1fr) auto auto auto auto auto; }
   .rv-ago { min-width: 76px; text-align: right; }
 
+  /* ---------- more menu ---------- */
+  details.more-menu { position: relative; }
+  details.more-menu summary { list-style: none; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-size: var(--fs-md);
+                              color: var(--text-2); white-space: nowrap; }
+  details.more-menu summary::-webkit-details-marker { display: none; }
+  details.more-menu summary::after { content: ""; display: inline-block; margin-left: 6px; vertical-align: 2px;
+                                     border: 4px solid transparent; border-top: 5px solid var(--text-3); border-bottom: 0; }
+  details.more-menu summary:hover, details.more-menu[open] summary { background: var(--hover); color: var(--text); }
+  details.more-menu summary.on { background: var(--chip); color: var(--text); font-weight: 500; }
+  .mm { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 200px; background: var(--surface);
+        border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.12); padding: 6px; }
+  .mm a { display: block; padding: 8px 12px; border-radius: 8px; font-size: var(--fs-md); color: var(--text-2); }
+  .mm a:hover { background: var(--hover); color: var(--text); } .mm a.on { color: var(--text); font-weight: 600; }
+  @media (min-width: 681px) { .tabs { overflow: visible; } }
+  @media (max-width: 680px) { .mm { position: fixed; top: 58px; right: 12px; } }
+
+  /* ---------- intelligence pages ---------- */
+  .note-box { margin-top: var(--s5); padding: 12px 16px; border-radius: 12px; background: var(--peach); border: 1px solid var(--peach-border);
+              font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; }
+  .note-box code { font-family: var(--mono); font-size: 12px; background: var(--surface); }
+  .rcards { display: grid; gap: 14px; }
+  .rcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; }
+  .r-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .r-title { font-size: 18px; font-weight: 600; } .r-title:hover { text-decoration: underline; }
+  .r-cat { font-size: 12px; color: var(--text-3); margin-left: auto; }
+  .r-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s4); margin: var(--s4) 0; padding: 14px 0;
+            border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+  .r-grid span { display: block; font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .r-grid b { font-size: 18px; font-weight: 700; } .r-grid small { display: block; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+  .r-why { margin: 6px 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; } .r-why b { color: var(--text); }
+  .r-src { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+  .r-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: var(--s4); }
+  .evs { display: grid; gap: 8px; margin-top: 12px; }
+  .ev { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px;
+        border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface); font-size: var(--fs-sm); }
+  .ev:hover { border-color: var(--border); background: var(--hover); }
+  .ev b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ev .mono { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .st-open { color: var(--warn-text); font-size: 12px; font-weight: 500; } .st-done { color: var(--green); font-size: 12px; font-weight: 500; }
+  .fbar { display: inline-flex; align-items: center; gap: 6px; min-width: 92px; }
+  .fbar i { display: block; width: 48px; height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; position: relative; }
+  .fbar u { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
+  .fbar em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+  .fbar.na { color: var(--text-4); font-family: var(--mono); font-size: 12px; }
+  .score { font-size: 18px; font-weight: 700; }
+  .small { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .weights { margin-top: 14px; } .weights summary { cursor: pointer; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .wt-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 24px; margin-top: 14px; }
+  .wt { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: var(--fs-sm); }
+  .wt span { font-weight: 600; } .wt input { grid-column: 1; accent-color: var(--accent); } .wt output { font-family: var(--mono); font-size: 12px; }
+  .wt small { grid-column: 1 / -1; color: var(--text-3); font-size: 11px; }
+  .wt-form .fb-btns { grid-column: 1 / -1; }
+  .score-big { text-align: right; } .score-big span { display: block; font-size: 11px; color: var(--text-3); font-family: var(--mono); text-transform: uppercase; }
+  .score-big b { font-size: 40px; font-weight: 700; letter-spacing: -.02em; }
+  .sec-h2 { font-size: 17px; font-weight: 600; margin: var(--s8) 0 var(--s3); }
+  .frow { display: grid; grid-template-columns: 130px auto; gap: 2px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-soft); font-size: var(--fs-sm); }
+  .frow small { grid-column: 1 / -1; color: var(--text-3); font-size: 11px; } .frow span small { display: inline; }
+  .track { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 12px; }
+  .track .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-3); }
+  .track select, .track textarea { font: inherit; font-size: var(--fs-sm); padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+                                   background: var(--bg); color: var(--text); }
+  .log { list-style: none; padding: 0; margin: 12px 0 0; font-size: var(--fs-sm); color: var(--text-2); }
+  .log li { padding: 4px 0; } .log .mono { font-size: 11px; color: var(--text-3); margin-right: 8px; }
+  .ai-label { font-family: var(--mono); font-size: 11px; color: var(--accent); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .ai-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+  .ai-grid h3, .panel h3 { font-size: var(--fs-md); font-weight: 600; margin: 12px 0 4px; }
+  .claims, .ai-grid ul, ul.plain { margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.6; }
+  .cite a { font-family: var(--mono); font-size: 11px; color: var(--link); }
+  .qtab { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin-top: 8px; }
+  .qtab td { padding: 9px 8px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+  .status.bad::before { background: var(--red); border-color: var(--red); }
+  .dmeta { align-self: flex-start; max-width: 88%; font-size: 11px; color: var(--text-3); font-family: var(--mono); margin-top: -4px; line-height: 1.5; }
+  @media (max-width: 1000px) { .r-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ai-grid { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 680px) { .r-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ev { grid-template-columns: minmax(0, 1fr); } .ev b { white-space: normal; } }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -741,11 +816,16 @@ RUN_OVERLAY = """
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
-    tabs = [("/", "This week", "brief"), ("/recent", "Recently viewed", "recent"),
-            ("/pain-points", "Pain points", "points"), ("/unresolved", "Unresolved", "unresolved"),
-            ("/watchlist", "Sumit’s watchlist", "watch"), ("/topics", "Keywords", "topics")]
+    tabs = [("/", "This week", "brief"), ("/recent", "Recently viewed", "recent"), ("/radar", "Radar", "radar"),
+            ("/opportunities", "Opportunities", "opps"), ("/pain-points", "Pain points", "points"),
+            ("/watchlist", "Sumit’s watchlist", "watch")]
+    more = [("/unresolved", "Unresolved threads", "unresolved"), ("/evidence", "Data quality", "quality"),
+            ("/topics", "Keywords", "topics"), ("/health", "System health", "health")]
     nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
                   + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
+    nav += (f'<details class="more-menu"><summary class="{"on" if active in {k for _, _, k in more} else ""}">More</summary>'
+            f'<div class="mm">' + "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
+                                         for href, label, key in more) + "</div></details>")
     weeks = "".join(
         f'<option value="/history/{escape(h["week_start"])}"{" selected" if h["week_start"] == current_week else ""}>'
         f'Week {_week_no(h["week_start"])}{" · latest" if i == 0 else ""}</option>'
@@ -782,7 +862,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 DEVI_WIDGET = """
 <button class="devi-fab" type="button" data-devi-open aria-label="Ask Devi"><span class="dv">D</span>Ask Devi</button>
 <section class="devi" id="devi" hidden role="dialog" aria-label="Devi, the DevvIT assistant">
-  <header class="devi-h"><span class="dv">D</span><div><b>Devi</b><small>Answers from your DevvIT data</small></div>
+  <header class="devi-h"><span class="dv">D</span><div><b>Devi</b><small>Ask DevvIT · answers only from your data</small></div>
     <button type="button" class="dlink" id="devi-clear">Clear</button>
     <button type="button" class="dx" id="devi-close" aria-label="Close">&times;</button></header>
   <div class="devi-log" id="devi-log" aria-live="polite">
@@ -810,9 +890,17 @@ DEVI_WIDGET = """
     if (isHtml) d.innerHTML = content; else d.textContent = content;
     log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
   };
+  const meta = m => {
+    if (!m) return;
+    const d = document.createElement('div'); d.className = 'dmeta';
+    const range = m.from && m.to ? m.from + ' to ' + m.to : 'no dated threads';
+    d.textContent = 'Evidence: ' + m.threads + ' stored threads (' + range + ', ' + m.weeks + ' weekly briefs) · '
+      + m.relevant + ' matched your question · ' + m.cited + ' linked' + (m.removed_links ? ' · ' + m.removed_links + ' unverified link(s) removed' : '');
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  };
   const render = () => {
     log.querySelectorAll('.dm:not(.intro)').forEach(n => n.remove());
-    hist.forEach(h => h.role === 'devi' ? bubble('bot', h.html, true) : bubble('me', h.text));
+    hist.forEach(h => { if (h.role === 'devi') { bubble('bot', h.html, true); meta(h.meta); } else bubble('me', h.text); });
     sugg.hidden = hist.length > 0;
   };
   const open = () => { panel.hidden = false; document.body.classList.add('devi-on'); render(); input.focus(); };
@@ -835,7 +923,7 @@ DEVI_WIDGET = """
       const j = await r.json().catch(() => ({}));
       wait.remove();
       if (!r.ok) bubble('bot err', j.detail || 'Something went wrong. Please try again.');
-      else { hist.push({ role: 'me', text: q }, { role: 'devi', text: j.answer, html: j.html }); save(); bubble('bot', j.html, true); }
+      else { hist.push({ role: 'me', text: q }, { role: 'devi', text: j.answer, html: j.html, meta: j.meta }); save(); bubble('bot', j.html, true); meta(j.meta); }
     } catch (err) { wait.remove(); bubble('bot err', "Couldn't reach Devi. Check your connection and try again."); }
     delete form.dataset.busy; input.focus();
   });
@@ -872,6 +960,8 @@ WATCH_JS = """<script>
   }, true);
   window.DevvitWatch = { load, store, sync };
   sync();
+  // close the More menu when clicking elsewhere
+  document.addEventListener('click', e => document.querySelectorAll('details.more-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
   // Recently viewed: remember pain point pages, newest first, at most 20.
   const seen = document.querySelector('[data-recent]');
   if (seen) {
