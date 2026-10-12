@@ -740,9 +740,9 @@ RUN_OVERLAY = """
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
-    tabs = [("/", "This week", "brief"), ("/pain-points", "Pain points", "points"),
-            ("/unresolved", "Unresolved", "unresolved"), ("/watchlist", "Sumit’s watchlist", "watch"),
-            ("/recent", "Recently viewed", "recent"), ("/topics", "Keywords", "topics")]
+    tabs = [("/", "This week", "brief"), ("/recent", "Recently viewed", "recent"),
+            ("/pain-points", "Pain points", "points"), ("/unresolved", "Unresolved", "unresolved"),
+            ("/watchlist", "Sumit’s watchlist", "watch"), ("/topics", "Keywords", "topics")]
     nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
                   + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
     weeks = "".join(
