@@ -14,8 +14,13 @@ NEAR_DUPLICATE = 0.8      # title token overlap at which two threads count as th
 SAME_THEME = 0.6          # label token overlap at which two pain point labels are the same theme
 
 
+_SHORT_TERMS = {"ai", "ci", "cd", "pr", "qa", "ui", "ux", "db", "go", "js", "ts", "ml", "os", "vm", "k8s"}
+
+
 def tokens(text: str | None) -> frozenset[str]:
-    return frozenset(t for t in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(t) > 2 and t not in _STOP)
+    """Meaningful words: 3+ letters, or a known short tech term like CI, CD, PR, AI."""
+    return frozenset(t for t in re.findall(r"[a-z0-9]+", (text or "").lower())
+                     if (len(t) > 2 or t in _SHORT_TERMS) and t not in _STOP)
 
 
 def jaccard(a: frozenset, b: frozenset) -> float:

@@ -177,3 +177,8 @@ def test_second_run_is_skipped_while_one_is_running(monkeypatch):
     called = []
     monkeypatch.setattr(w, "_pipeline", lambda *a: called.append(1) or {"ok": True})
     assert w._do_run(7)["skipped"] is True and not called
+
+
+def test_short_tech_terms_count_for_relevance():
+    posts = [post("Our CI/CD pipeline breaks on every PR"), post("Docker image size")]
+    assert [p["title"] for p in devi.rank_relevant("CI/CD integration problems", posts)] == ["Our CI/CD pipeline breaks on every PR"]
