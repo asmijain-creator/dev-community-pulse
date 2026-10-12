@@ -17,7 +17,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 import markdown as md
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
@@ -256,6 +256,28 @@ def brief_section(week: str, section: str):
     if section not in {s["key"] for s in sections}:
         return RedirectResponse(f"/history/{ws}", status_code=303)
     return V.section_page(ws, sections, section, _history(sb))
+
+
+@app.get("/watchlist", response_class=HTMLResponse)
+def watchlist():
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    return V.watchlist_page(_history(db()))
+
+
+@app.get("/api/watchlist", response_class=HTMLResponse)
+def watchlist_cards(n: list[str] = Query(default=[]), compact: int = 0):
+    """Latest numbers for the watched pain points (names come from the browser's watchlist)."""
+    names = list(dict.fromkeys(x.strip()[:200] for x in n if x.strip()))[:50]
+    sb = db()
+    weeks = sorted(h["week_start"] for h in _history(sb))[-6:]
+    rows = []
+    if names and weeks:
+        rows = sb.table("weekly_metrics") \
+            .select("week_start,pain_point,category,mention_count,unresolved_count,engagement") \
+            .in_("pain_point", names).in_("week_start", weeks).execute().data or []
+    return V.watch_cards(names, weeks, rows, compact=bool(compact))
 
 
 class DeviQuestion(BaseModel):

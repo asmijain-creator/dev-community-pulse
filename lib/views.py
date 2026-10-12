@@ -520,6 +520,42 @@ BASE_CSS = """
     .devi-fab { right: 16px; bottom: 16px; }
   }
 
+  /* ---------- watchlist ---------- */
+  .watch { border: 1px solid var(--border); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 4px 11px;
+           font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .watch:hover { border-color: var(--accent); color: var(--text); }
+  .watch.on { background: var(--up-bg); border-color: transparent; color: var(--up); }
+  .wcount { margin-left: 6px; font-size: 11px; font-weight: 600; background: var(--accent); color: #fff; border-radius: 999px; padding: 1px 6px; }
+  .wcount[hidden] { display: none; }
+  .pp-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+  .pp-head h1 { margin: 0 0 var(--s2); }
+  .wstrip { margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; }
+  .wstrip[hidden] { display: none; }
+  .wstrip .panel-h { align-items: center; } .wstrip h2 { margin: 0; }
+  .wrows { margin-top: var(--s3); }
+  .wrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: var(--s4); align-items: center;
+          padding: 10px 0; border-top: 1px solid var(--border-soft); font-size: var(--fs-md); }
+  .wrow:hover b { text-decoration: underline; }
+  .wrow b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wrow .mono { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .wcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: var(--s6); }
+  .wcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .w-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s3); }
+  .w-top b { font-size: 16px; font-weight: 600; line-height: 1.35; } .w-top a:hover b { text-decoration: underline; }
+  .w-cat { color: var(--text-3); font-size: var(--fs-xs); margin-top: -6px; }
+  .w-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); padding: 12px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+  .w-stats span { display: block; font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .w-stats span.chg { display: inline-block; margin: 0 0 0 6px; vertical-align: 4px; }
+  .w-stats b { font-size: 22px; font-weight: 700; } .w-stats b.up { color: var(--up); } .w-stats b.down { color: var(--down); }
+  .w-spark { display: flex; align-items: center; gap: var(--s3); } .w-spark .mono { font-size: 11px; color: var(--text-3); }
+  .w-note { width: 100%; resize: vertical; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font: inherit;
+            font-size: var(--fs-sm); background: var(--bg); color: var(--text); }
+  .w-note:focus { outline: none; border-color: var(--accent); }
+  .w-foot { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--fs-xs); color: var(--text-3); }
+  .w-foot a { color: var(--text-2); font-weight: 500; } .w-foot a:hover { color: var(--text); }
+  .wl-empty { margin-top: var(--s6); }
+  @media (max-width: 680px) { .wcards { grid-template-columns: minmax(0, 1fr); } .wrow { grid-template-columns: minmax(0, 1fr) auto auto; } .wrow .mono:last-child { display: none; } }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -693,8 +729,10 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
     tabs = [("/", "This week", "brief"), ("/pain-points", "Pain points", "points"),
-            ("/unresolved", "Unresolved", "unresolved"), ("/topics", "Keywords", "topics")]
-    nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>' for href, label, key in tabs)
+            ("/unresolved", "Unresolved", "unresolved"), ("/watchlist", "Watchlist", "watch"),
+            ("/topics", "Keywords", "topics")]
+    nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
+                  + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
     weeks = "".join(
         f'<option value="/history/{escape(h["week_start"])}"{" selected" if h["week_start"] == current_week else ""}>'
         f'Week {_week_no(h["week_start"])}{" · latest" if i == 0 else ""}</option>'
@@ -721,6 +759,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
 {RUN_OVERLAY}
 {DEVI_WIDGET}
+{WATCH_JS}
 {script}
 </body></html>"""
 
@@ -788,6 +827,43 @@ DEVI_WIDGET = """
 })();
 </script>"""
 
+
+WATCH_JS = """<script>
+// Watchlist: kept in this browser. Each item: {name, added, base (mentions when added), note}.
+(() => {
+  const KEY = 'devvit-watch';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const store = l => { try { localStorage.setItem(KEY, JSON.stringify(l)); } catch (e) {} };
+  const sync = () => {
+    const names = new Set(load().map(x => x.name));
+    document.querySelectorAll('[data-watch]').forEach(b => {
+      const on = names.has(b.dataset.watch);
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+      b.textContent = on ? '\u2605 Watching' : '\u2606 Watch';
+    });
+    document.querySelectorAll('.wcount').forEach(c => { c.textContent = names.size; c.hidden = !names.size; });
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-watch]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    let l = load(); const n = b.dataset.watch;
+    if (l.some(x => x.name === n)) {
+      l = l.filter(x => x.name !== n);
+      const card = b.closest('.wcard'); if (card) card.remove();
+    } else {
+      l.push({ name: n, added: new Date().toISOString().slice(0, 10), base: +(b.dataset.n || 0), note: '' });
+    }
+    store(l); sync(); document.dispatchEvent(new Event('watch-change'));
+  }, true);
+  window.DevvitWatch = { load, store, sync };
+  sync();
+})();
+</script>"""
+
+
+def _watch_btn(name: str, n: int = 0) -> str:
+    return (f'<button type="button" class="watch" data-watch="{escape(name)}" data-n="{int(n)}" '
+            f'aria-pressed="false" title="Add to your watchlist">&#9734; Watch</button>')
 
 RUN_BUTTON = (
     '<form class="inline" method="post" action="/run-now" data-run>'
@@ -1091,14 +1167,14 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
                  f'<td class="tn"><a href="{href}"><b>{escape(_nice(name))}</b></a><small>{escape(m.get("category") or "Other")}</small></td>'
                  f'<td class="num cur">{n}</td><td class="num">{"—" if last is None else last}</td>'
                  f'<td>{_chg(n, last)}</td><td>{_spark(vals) if len(weeks) > 1 else chr(8212)}</td>'
-                 f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td></tr>')
+                 f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td><td>{_watch_btn(name, n)}</td></tr>')
     ranked = f"""
 <section class="panel" style="margin-top:14px">
   <div class="panel-h"><div><h2>Pain points, ranked</h2>
     <p class="sub">Mentions this week vs the previous brief, with {f'the shape of the last {len(weeks)} weeks' if len(weeks) > 1 else 'trend lines once a second brief exists'}. Click a row for its history and threads.</p></div>
     <div class="seg" role="group" aria-label="Sort"><button class="on" data-k="vol">By volume</button><button data-k="grow">By growth</button></div></div>
   <div class="rank-wrap"><table class="rank" id="rank">
-    <thead><tr><th>#</th><th>Topic · category</th><th class="num">This wk</th><th class="num">Last wk</th><th>Change</th><th>{f"{len(weeks)} wk" if len(weeks) > 1 else "Trend"}</th><th>Status</th></tr></thead>
+    <thead><tr><th>#</th><th>Topic · category</th><th class="num">This wk</th><th class="num">Last wk</th><th>Change</th><th>{f"{len(weeks)} wk" if len(weeks) > 1 else "Trend"}</th><th>Status</th><th></th></tr></thead>
     <tbody>{rows}</tbody></table></div>
   <a class="more" href="{base}/pain-points">View all {len(metrics)} pain points →</a>
 </section>"""
@@ -1153,10 +1229,12 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
     <div class="fb-actions"><div class="mono gen">Generated {escape(_ist_label(b.get("created_at")))}</div>
       <div class="fb-btns">{compare}{RUN_BUTTON}</div></div>
   </header>
-  {kpis}{plan_row}{ranked}{trends}{unres}{kw}
+  {kpis}
+  <section class="wstrip" id="wstrip" hidden></section>
+  {plan_row}{ranked}{trends}{unres}{kw}
 </main>"""
     return _page(f"Week {_week_no(week)} · Friday brief", body, active="brief" if is_latest else "",
-                 history=history, current_week=week, script=CLEAR_RUN_JS + RANK_JS + CHART_JS, hide_run=True)
+                 history=history, current_week=week, script=CLEAR_RUN_JS + RANK_JS + CHART_JS + STRIP_JS, hide_run=True)
 
 
 RANK_JS = """<script>
@@ -1171,6 +1249,100 @@ RANK_JS = """<script>
 })();
 </script>"""
 
+
+STRIP_JS = """<script>
+(async () => {
+  const box = document.getElementById('wstrip'), l = window.DevvitWatch ? DevvitWatch.load() : [];
+  if (!box || !l.length) return;
+  const r = await fetch('/api/watchlist?compact=1&' + l.map(x => 'n=' + encodeURIComponent(x.name)).join('&'));
+  if (!r.ok) return;
+  box.innerHTML = await r.text(); box.hidden = false; DevvitWatch.sync();
+})();
+</script>"""
+
+
+def watch_cards(names: list[str], weeks: list[str], rows: list[dict], compact: bool = False) -> str:
+    """Tracking cards for watched pain points. Per-browser details (date added, note) are filled in by the page."""
+    by_name: dict[str, dict] = {}
+    for r in rows:
+        by_name.setdefault(r["pain_point"], {})[r["week_start"]] = r
+    latest = weeks[-1] if weeks else None
+    prev_wk = weeks[-2] if len(weeks) > 1 else None
+    items = []
+    for name in names:
+        per = by_name.get(name, {})
+        cur_row, prev_row = per.get(latest) or {}, per.get(prev_wk) or {}
+        cur = cur_row.get("mention_count") or 0
+        prev = (prev_row.get("mention_count") or 0) if prev_wk else None
+        cat = next((r.get("category") for r in per.values() if r.get("category")), "") or ""
+        vals = [(per.get(w) or {}).get("mention_count") or 0 for w in weeks]
+        items.append((name, cur, prev, cur_row.get("unresolved_count") or 0, cat, vals))
+
+    if compact:
+        rows_html = "".join(
+            f'<a class="wrow" href="{_point_href(name, latest)}"><b>{escape(_nice(name))}</b>'
+            f'<span class="mono">{cur} this wk</span>{_chg(cur, prev)}'
+            f'<span class="mono">{u} open</span></a>' for name, cur, prev, u, _, _ in items)
+        return (f'<div class="panel-h"><h2>Your watchlist</h2><a class="more" style="margin:0" href="/watchlist">Manage →</a></div>'
+                f'<div class="wrows">{rows_html}</div>')
+
+    cards = ""
+    for name, cur, prev, u, cat, vals in items:
+        href = _point_href(name, latest)
+        quiet = '<span class="cov ok">Quiet this week</span>' if not cur else ""
+        cards += f"""
+<article class="wcard" data-name="{escape(name)}" data-cur="{cur}">
+  <div class="w-top"><a href="{href}"><b>{escape(_nice(name))}</b></a>{_watch_btn(name, cur)}</div>
+  <small class="w-cat">{escape(cat or "No mentions in the tracked weeks")}</small>
+  <div class="w-stats">
+    <div><span>This week</span><b>{cur}</b> {_chg(cur, prev)}</div>
+    <div><span>Unresolved</span><b>{u}</b></div>
+    <div><span>Since you added it</span><b class="w-since">—</b></div>
+  </div>
+  <div class="w-spark">{_spark(vals) if len(vals) > 1 else ""}<span class="mono">{len(weeks)} wk</span>{quiet}</div>
+  <textarea class="w-note" rows="2" placeholder="Add a note: why you're watching this, what you've tried…" aria-label="Note"></textarea>
+  <div class="w-foot"><span class="w-added mono"></span><a href="{href}">History &amp; threads →</a></div>
+</article>"""
+    return cards
+
+
+def watchlist_page(history: list[dict]) -> str:
+    body = """
+<main class="fb">
+  <div class="fb-eyebrow">Your watchlist</div>
+  <h1 class="fb-h1">Problems you're tracking</h1>
+  <p class="fb-sub">Bookmark any pain point with <b>&#9734; Watch</b> and follow it here week by week: mentions, open threads, the trend,
+     and how much it has moved since you added it. Your watchlist is saved in this browser.</p>
+  <section class="wcards" id="wl"></section>
+  <div class="panel wl-empty" id="wl-empty" hidden><h2>Nothing on your watchlist yet</h2>
+    <p class="sub">Open <a class="more" style="margin:0" href="/pain-points">Pain points</a> and press &#9734; Watch on the problems you care about.
+    They'll show up here with their weekly numbers.</p></div>
+</main>"""
+    return _page("Watchlist · DevvIT", body, active="watch", history=history, script=WATCHLIST_JS)
+
+
+WATCHLIST_JS = """<script>
+(async () => {
+  const box = document.getElementById('wl'), empty = document.getElementById('wl-empty');
+  const showEmpty = () => { empty.hidden = DevvitWatch.load().length > 0; };
+  document.addEventListener('watch-change', showEmpty);
+  const l = DevvitWatch.load();
+  if (!l.length) { showEmpty(); return; }
+  box.innerHTML = '<p class="sub">Loading your watchlist…</p>';
+  const r = await fetch('/api/watchlist?' + l.map(x => 'n=' + encodeURIComponent(x.name)).join('&'));
+  box.innerHTML = r.ok ? await r.text() : "<p class='sub'>Could not load the latest numbers. Refresh to try again.</p>";
+  box.querySelectorAll('.wcard').forEach(c => {
+    const it = DevvitWatch.load().find(x => x.name === c.dataset.name); if (!it) return;
+    const d = +c.dataset.cur - (it.base || 0);
+    const since = c.querySelector('.w-since');
+    since.textContent = (d > 0 ? '+' : '') + d; since.className = 'w-since ' + (d > 0 ? 'up' : d < 0 ? 'down' : '');
+    c.querySelector('.w-added').textContent = 'Watching since ' + it.added;
+    const t = c.querySelector('.w-note'); t.value = it.note || '';
+    t.addEventListener('input', () => { const L = DevvitWatch.load(), x = L.find(y => y.name === it.name); if (x) { x.note = t.value; DevvitWatch.store(L); } });
+  });
+  DevvitWatch.sync();
+})();
+</script>"""
 
 def unresolved_page(b: dict | None, history: list[dict]) -> str:
     """Every unresolved thread for the week, most-discussed first."""
@@ -1252,7 +1424,7 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
             f'<td><span class="pill {_cat_class(cat)}">{escape(cat)}</span></td>'
             f'<td class="n" data-v="{n}">{_meter(n, max_m)}</td>'
             f'<td class="n {"warn" if u else "zero"}" data-v="{u}">{u}</td>'
-            f'<td class="n {"" if e else "zero"}" data-v="{e}">{e:,}</td></tr>'
+            f'<td class="n {"" if e else "zero"}" data-v="{e}">{e:,}</td><td>{_watch_btn(m["pain_point"], n)}</td></tr>'
         )
     chips = '<button class="chip on" data-cat="">All</button>' + "".join(
         f'<button class="chip dotted {_cat_class(c)}" data-cat="{escape(c)}">{escape(c)}</button>'
@@ -1266,7 +1438,7 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
 <div class="tbl"><table id="pp">
   <thead><tr><th data-sort="text">Pain point</th><th data-sort="text">Category</th>
     <th class="n" data-sort="num" aria-sort="descending">Mentions</th><th class="n" data-sort="num">Unresolved</th>
-    <th class="n" data-sort="num">Engagement</th></tr></thead>
+    <th class="n" data-sort="num">Engagement</th><th></th></tr></thead>
   <tbody>{rows_html}</tbody>
 </table><div class="tfoot" id="count">{len(metrics_rows)} pain points</div></div>
 <p class="hint">Unresolved: threads without an accepted answer or fix. Engagement: votes plus comments.</p>"""
@@ -1399,7 +1571,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
 <main class="content narrow">
   <div>
     {back}
-    <h1>{escape(title)}</h1>
+    <div class="pp-head"><h1>{escape(_nice(name))}</h1>{_watch_btn(name, n)}</div>
     <p class="lede" style="margin-bottom:var(--s6)"><span class="pill {_cat_class(category)}">{escape(category)}</span>
       &nbsp;{escape(_week_title(week)) if week else ""}</p>
     {stats}
