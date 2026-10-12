@@ -457,6 +457,8 @@ BASE_CSS = """
   .runs dt { color: var(--text-3); } .runs dd { margin: 0; font-family: var(--mono); font-size: 12px; text-align: right; }
   .runs .btn { justify-content: center; margin-top: 6px; }
 
+  @media (max-width: 1240px) { .scope { display: none; } }
+  @media (max-width: 1140px) { .tabs a { padding: 7px 9px; } .topnav-in { gap: var(--s3); } }
   @media (max-width: 1000px) {
     .scope { display: none; }
     .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -729,7 +731,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
     tabs = [("/", "This week", "brief"), ("/pain-points", "Pain points", "points"),
-            ("/unresolved", "Unresolved", "unresolved"), ("/watchlist", "Watchlist", "watch"),
+            ("/unresolved", "Unresolved", "unresolved"), ("/watchlist", "Sumit’s watchlist", "watch"),
             ("/topics", "Keywords", "topics")]
     nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
                   + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
@@ -863,7 +865,7 @@ WATCH_JS = """<script>
 
 def _watch_btn(name: str, n: int = 0) -> str:
     return (f'<button type="button" class="watch" data-watch="{escape(name)}" data-n="{int(n)}" '
-            f'aria-pressed="false" title="Add to your watchlist">&#9734; Watch</button>')
+            f'aria-pressed="false" title="Add to Sumit’s watchlist">&#9734; Watch</button>')
 
 RUN_BUTTON = (
     '<form class="inline" method="post" action="/run-now" data-run>'
@@ -1283,7 +1285,7 @@ def watch_cards(names: list[str], weeks: list[str], rows: list[dict], compact: b
             f'<a class="wrow" href="{_point_href(name, latest)}"><b>{escape(_nice(name))}</b>'
             f'<span class="mono">{cur} this wk</span>{_chg(cur, prev)}'
             f'<span class="mono">{u} open</span></a>' for name, cur, prev, u, _, _ in items)
-        return (f'<div class="panel-h"><h2>Your watchlist</h2><a class="more" style="margin:0" href="/watchlist">Manage →</a></div>'
+        return (f'<div class="panel-h"><h2>Sumit’s watchlist</h2><a class="more" style="margin:0" href="/watchlist">Manage →</a></div>'
                 f'<div class="wrows">{rows_html}</div>')
 
     cards = ""
@@ -1309,16 +1311,16 @@ def watch_cards(names: list[str], weeks: list[str], rows: list[dict], compact: b
 def watchlist_page(history: list[dict]) -> str:
     body = """
 <main class="fb">
-  <div class="fb-eyebrow">Your watchlist</div>
+  <div class="fb-eyebrow">Sumit’s watchlist</div>
   <h1 class="fb-h1">Problems you're tracking</h1>
   <p class="fb-sub">Bookmark any pain point with <b>&#9734; Watch</b> and follow it here week by week: mentions, open threads, the trend,
-     and how much it has moved since you added it. Your watchlist is saved in this browser.</p>
+     and how much it has moved since you added it. Sumit’s watchlist is saved in this browser.</p>
   <section class="wcards" id="wl"></section>
-  <div class="panel wl-empty" id="wl-empty" hidden><h2>Nothing on your watchlist yet</h2>
+  <div class="panel wl-empty" id="wl-empty" hidden><h2>Nothing on Sumit’s watchlist yet</h2>
     <p class="sub">Open <a class="more" style="margin:0" href="/pain-points">Pain points</a> and press &#9734; Watch on the problems you care about.
     They'll show up here with their weekly numbers.</p></div>
 </main>"""
-    return _page("Watchlist · DevvIT", body, active="watch", history=history, script=WATCHLIST_JS)
+    return _page("Sumit’s watchlist · DevvIT", body, active="watch", history=history, script=WATCHLIST_JS)
 
 
 WATCHLIST_JS = """<script>
@@ -1328,7 +1330,7 @@ WATCHLIST_JS = """<script>
   document.addEventListener('watch-change', showEmpty);
   const l = DevvitWatch.load();
   if (!l.length) { showEmpty(); return; }
-  box.innerHTML = '<p class="sub">Loading your watchlist…</p>';
+  box.innerHTML = '<p class="sub">Loading Sumit’s watchlist…</p>';
   const r = await fetch('/api/watchlist?' + l.map(x => 'n=' + encodeURIComponent(x.name)).join('&'));
   box.innerHTML = r.ok ? await r.text() : "<p class='sub'>Could not load the latest numbers. Refresh to try again.</p>";
   box.querySelectorAll('.wcard').forEach(c => {
