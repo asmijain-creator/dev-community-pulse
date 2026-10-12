@@ -476,6 +476,50 @@ BASE_CSS = """
     .crumbs-row { padding: 0 var(--s4); }
   }
 
+  /* ---------- Devi assistant ---------- */
+  .dv { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif);
+        font-size: 15px; font-weight: 500; color: #fff; background: linear-gradient(135deg, #c2410c, #e07b39); }
+  .devi-fab { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: inline-flex; align-items: center; gap: 10px;
+              padding: 9px 18px 9px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--ink); color: var(--bg);
+              font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .devi-fab:hover { background: var(--ink-hover); }
+  body.devi-on .devi-fab { display: none; }
+  .devi { position: fixed; right: 24px; bottom: 24px; z-index: 45; width: min(420px, calc(100vw - 32px)); height: min(600px, calc(100vh - 100px));
+          display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+          box-shadow: 0 24px 64px rgba(0,0,0,.22); overflow: hidden; }
+  .devi[hidden] { display: none; }
+  .devi-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-soft); }
+  .devi-h .dv { width: 32px; height: 32px; font-size: 18px; }
+  .devi-h b { display: block; font-size: var(--fs-md); } .devi-h small { color: var(--text-3); font-size: var(--fs-xs); }
+  .devi-h .dlink { margin-left: auto; border: 0; background: none; color: var(--text-3); font: inherit; font-size: var(--fs-xs); cursor: pointer; }
+  .devi-h .dlink:hover { color: var(--text); }
+  .devi-h .dx { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--text-3); cursor: pointer; padding: 0 4px; }
+  .devi-h .dx:hover { color: var(--text); }
+  .devi-log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+  .dm { max-width: 88%; padding: 10px 13px; border-radius: 12px; font-size: var(--fs-sm); line-height: 1.55; overflow-wrap: anywhere; }
+  .dm.me { align-self: flex-end; background: var(--ink); color: var(--bg); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+  .dm.bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; color: var(--text-2); }
+  .dm.bot p { margin: 0 0 6px; } .dm.bot p:last-child { margin-bottom: 0; }
+  .dm.bot ul, .dm.bot ol { margin: 4px 0; padding-left: 18px; } .dm.bot li { margin: 3px 0; }
+  .dm.bot strong { color: var(--text); }
+  .dm.bot a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+  .dm.err { border-color: rgba(194,65,12,.35); color: var(--up); }
+  .dm.wait::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .devi-sugg { display: flex; flex-direction: column; gap: 6px; }
+  .devi-sugg[hidden] { display: none; }
+  .devi-sugg button { text-align: left; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); border-radius: 10px;
+                      padding: 8px 12px; font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+  .devi-sugg button:hover { border-color: var(--accent); color: var(--text); }
+  .devi-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border-soft); background: var(--surface); }
+  .devi-form textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font: inherit;
+                        font-size: var(--fs-sm); background: var(--bg); color: var(--text); max-height: 120px; }
+  .devi-form textarea:focus { outline: none; border-color: var(--accent); }
+  @media (max-width: 680px) {
+    .devi { right: 0; bottom: 0; width: 100vw; height: 100dvh; border-radius: 0; }
+    .devi-fab { right: 16px; bottom: 16px; }
+  }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -676,8 +720,73 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 {body}
 <footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
 {RUN_OVERLAY}
+{DEVI_WIDGET}
 {script}
 </body></html>"""
+
+
+DEVI_WIDGET = """
+<button class="devi-fab" type="button" data-devi-open aria-label="Ask Devi"><span class="dv">D</span>Ask Devi</button>
+<section class="devi" id="devi" hidden role="dialog" aria-label="Devi, the DevvIT assistant">
+  <header class="devi-h"><span class="dv">D</span><div><b>Devi</b><small>Answers from your DevvIT data</small></div>
+    <button type="button" class="dlink" id="devi-clear">Clear</button>
+    <button type="button" class="dx" id="devi-close" aria-label="Close">&times;</button></header>
+  <div class="devi-log" id="devi-log" aria-live="polite">
+    <div class="dm bot intro">Hi Sumit, I'm Devi. Ask me anything about the pain points, threads and briefs stored in DevvIT. I only answer from your data and link the threads I use.</div>
+    <div class="devi-sugg" id="devi-sugg">
+      <button type="button">What were the top pain points this week?</button>
+      <button type="button">Which problems are still unresolved?</button>
+      <button type="button">What are developers saying about AI code review?</button>
+      <button type="button">Which threads got the most engagement?</button>
+    </div>
+  </div>
+  <form class="devi-form" id="devi-form">
+    <textarea id="devi-q" rows="1" maxlength="600" placeholder="Ask about pain points, threads, trends…" aria-label="Your question"></textarea>
+    <button class="btn btn-primary" type="submit">Ask</button>
+  </form>
+</section>
+<script>
+(() => {
+  const panel = document.getElementById('devi'), log = document.getElementById('devi-log');
+  const form = document.getElementById('devi-form'), input = document.getElementById('devi-q'), sugg = document.getElementById('devi-sugg');
+  let hist = []; try { hist = JSON.parse(sessionStorage.getItem('devi-chat') || '[]'); } catch (e) {}
+  const save = () => { try { sessionStorage.setItem('devi-chat', JSON.stringify(hist.slice(-20))); } catch (e) {} };
+  const bubble = (cls, content, isHtml) => {
+    const d = document.createElement('div'); d.className = 'dm ' + cls;
+    if (isHtml) d.innerHTML = content; else d.textContent = content;
+    log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+  };
+  const render = () => {
+    log.querySelectorAll('.dm:not(.intro)').forEach(n => n.remove());
+    hist.forEach(h => h.role === 'devi' ? bubble('bot', h.html, true) : bubble('me', h.text));
+    sugg.hidden = hist.length > 0;
+  };
+  const open = () => { panel.hidden = false; document.body.classList.add('devi-on'); render(); input.focus(); };
+  const close = () => { panel.hidden = true; document.body.classList.remove('devi-on'); };
+  document.querySelectorAll('[data-devi-open]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); open(); }));
+  document.getElementById('devi-close').addEventListener('click', close);
+  document.getElementById('devi-clear').addEventListener('click', () => { hist = []; save(); render(); input.focus(); });
+  sugg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { input.value = b.textContent; form.requestSubmit(); }));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) close(); });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = input.value.trim(); if (!q || form.dataset.busy) return;
+    form.dataset.busy = '1'; input.value = ''; sugg.hidden = true;
+    bubble('me', q);
+    const wait = bubble('bot wait', 'Devi is reading your data');
+    try {
+      const r = await fetch('/api/devi', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, history: hist.map(h => ({ role: h.role, text: h.text })) }) });
+      const j = await r.json().catch(() => ({}));
+      wait.remove();
+      if (!r.ok) bubble('bot err', j.detail || 'Something went wrong. Please try again.');
+      else { hist.push({ role: 'me', text: q }, { role: 'devi', text: j.answer, html: j.html }); save(); bubble('bot', j.html, true); }
+    } catch (err) { wait.remove(); bubble('bot err', "Couldn't reach Devi. Check your connection and try again."); }
+    delete form.dataset.busy; input.focus();
+  });
+})();
+</script>"""
 
 
 RUN_BUTTON = (

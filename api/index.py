@@ -19,7 +19,9 @@ if _ROOT not in sys.path:
 import markdown as md
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from pydantic import BaseModel
 
+from lib import devi
 from lib import views as V
 from lib.collectors import collect
 from lib.db import db
@@ -254,6 +256,27 @@ def brief_section(week: str, section: str):
     if section not in {s["key"] for s in sections}:
         return RedirectResponse(f"/history/{ws}", status_code=303)
     return V.section_page(ws, sections, section, _history(sb))
+
+
+class DeviQuestion(BaseModel):
+    question: str
+    history: list[dict] = []
+
+
+@app.post("/api/devi")
+def devi_ask(q: DeviQuestion):
+    """Devi, the DevvIT assistant: answers questions from the data in Supabase."""
+    ok, _ = _env_check()
+    if not ok:
+        raise HTTPException(503, "Devi isn't set up yet: the database or AI key is missing.")
+    if not q.question.strip():
+        raise HTTPException(400, "Type a question first.")
+    try:
+        answer = devi.ask(db(), q.question, q.history)
+    except Exception as e:
+        print(f"[devi] failed: {e!r}")
+        raise HTTPException(502, "Devi couldn't reach the AI model just now. Please try again in a moment.")
+    return {"answer": answer, "html": devi.to_html(answer)}
 
 
 # ---------- admin ----------
