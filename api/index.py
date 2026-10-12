@@ -19,7 +19,9 @@ if _ROOT not in sys.path:
 import markdown as md
 from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exception_handlers import http_exception_handler
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lib import devi
 from lib import views as V
@@ -77,6 +79,16 @@ def _check_admin(req: Request) -> None:
     if not secrets.compare_digest(got, pw):
         raise HTTPException(401, "bad credentials",
                             headers={"WWW-Authenticate": 'Basic realm="admin"'})
+
+
+@app.exception_handler(StarletteHTTPException)
+async def branded_errors(request: Request, exc: StarletteHTTPException):
+    """Browser pages get a DevvIT error page; API routes and non-HTML clients keep the JSON error.
+    Headers (e.g. WWW-Authenticate for the admin login prompt) are passed through unchanged."""
+    if request.url.path.startswith("/api/") or "text/html" not in request.headers.get("accept", ""):
+        return await http_exception_handler(request, exc)
+    return HTMLResponse(V.error_page(exc.status_code, str(exc.detail)), status_code=exc.status_code,
+                        headers=getattr(exc, "headers", None))
 
 
 # ---------- public ----------

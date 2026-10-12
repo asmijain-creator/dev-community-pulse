@@ -1,4 +1,12 @@
-# Dev Community Pulse
+# DevvIT
+
+**AI-powered developer community intelligence.** DevvIT turns public developer discussions into
+actionable product intelligence: what developers are struggling with, which pain points are emerging,
+how they trend week over week, and where the product opportunities are.
+
+_Formerly Developer Community Pulse. The Vercel project, database tables and environment variables keep
+their original names (`dev-community-pulse`), so existing deployments and data are unaffected._
+
 
 Automated weekly brief for a PM at a code-review-tool startup. Every Friday
 morning, scrapes developer discussions from Hacker News, Stack Overflow and

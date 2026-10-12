@@ -521,6 +521,7 @@ BASE_CSS = """
   @media (max-width: 680px) {
     .devi { right: 0; bottom: 0; width: 100vw; height: 100dvh; border-radius: 0; }
     .devi-fab { right: 16px; bottom: 16px; }
+    body { padding-bottom: 72px; }  /* room to scroll content clear of the Ask Devi button */
   }
 
   /* ---------- watchlist ---------- */
@@ -755,7 +756,10 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
     return f"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{escape(title)}</title>
+<title>{escape(title if title.endswith("DevvIT") else f"{title} · DevvIT")}</title>
+<meta name="description" content="DevvIT turns public developer discussions from Hacker News, Stack Overflow and GitHub into weekly product intelligence: pain points, trends and opportunities.">
+<meta name="theme-color" content="#18181b">
+<link rel="icon" type="image/svg+xml" href="{FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 {BASE_CSS}
@@ -885,6 +889,12 @@ WATCH_JS = """<script>
 def _watch_btn(name: str, n: int = 0) -> str:
     return (f'<button type="button" class="watch" data-watch="{escape(name)}" data-n="{int(n)}" '
             f'aria-pressed="false" title="Add to Sumit’s watchlist">&#9734; Watch</button>')
+
+# The nav logo as a favicon: ink rounded square with the rust pulse line. Works on light and dark tab bars.
+FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
+           "%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E"
+           "%3Cpath d='M5 16h6l4-9 6 18 4-9h2' fill='none' stroke='%23f0a06c' stroke-width='2.6' "
+           "stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
 
 RUN_BUTTON = (
     '<form class="inline" method="post" action="/run-now" data-run>'
@@ -1433,6 +1443,25 @@ RECENT_JS = """<script>
 })();
 </script>"""
 
+def error_page(status: int, detail: str | None) -> str:
+    """Friendly HTML for errors on browser pages (API routes keep their JSON errors)."""
+    known = {
+        401: ("Sign in required", "This page needs the DevvIT admin password. Reload the page to enter it."),
+        404: ("Page not found", "That page doesn't exist, or the brief you're looking for hasn't been generated."),
+    }
+    heading, text = known.get(status, ("Something went wrong", "DevvIT couldn't load this page. Please try again in a moment."))
+    if status == 404 and detail and detail.lower().startswith("no brief"):
+        text = "There's no brief for that week. Pick another week from the menu, or open the latest brief."
+    body = f"""
+<main class="fb">
+  <div class="fb-eyebrow">Error {status}</div>
+  <h1 class="fb-h1">{escape(heading)}</h1>
+  <p class="fb-sub">{escape(text)}</p>
+  <div class="fb-btns" style="margin-top:var(--s6)"><a class="btn btn-primary" href="/">Open the latest brief</a>
+    <a class="btn" href="/pain-points">Browse pain points</a></div>
+</main>"""
+    return _page(heading, body, hide_run=True)
+
 def unresolved_page(b: dict | None, history: list[dict]) -> str:
     """Every unresolved thread for the week, most-discussed first."""
     if not b:
@@ -1671,7 +1700,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
 </main>"""
     crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/brief/{escape(week or "")}/pain-points">All pain points</a>'
               f'<span>/</span><b>{escape(title)}</b>')
-    return _page(f"{title} · DevvIT", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
+    return _page(f"{_nice(name)} · DevvIT", body, active="points", crumbs=crumbs, actions=RUN_BUTTON,
                  history=history, current_week=week, script=CHART_JS)
 
 
