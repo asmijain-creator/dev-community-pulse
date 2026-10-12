@@ -275,7 +275,7 @@ def devi_ask(q: DeviQuestion):
         answer = devi.ask(db(), q.question, q.history)
     except Exception as e:
         print(f"[devi] failed: {e!r}")
-        raise HTTPException(502, f"Devi couldn't reach the AI model just now. Please try again in a moment. [{type(e).__name__}: {str(e)[:160]}]")
+        raise HTTPException(502, "Devi couldn't reach the AI model just now. Please try again in a moment.")
     return {"answer": answer, "html": devi.to_html(answer)}
 
 

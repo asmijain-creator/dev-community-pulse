@@ -78,7 +78,8 @@ def ask(sb, question: str, history: list[dict]) -> str:
         if text:
             contents.append({"role": role, "parts": [{"text": text}]})
     contents.append({"role": "user", "parts": [{"text": f"<data>\n{build_context(sb)}\n</data>\n\nQuestion: {question}"}]})
-    resp = _client().models.generate_content(
+    client = _client()  # keep a reference: the SDK closes its HTTP client when the object is collected
+    resp = client.models.generate_content(
         model=MODEL,
         contents=contents,
         config=types.GenerateContentConfig(system_instruction=SYSTEM, temperature=0.2),
