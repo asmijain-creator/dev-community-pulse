@@ -117,7 +117,7 @@ def pain_point(sb, name: str, ctx: dict) -> dict | None:
         "negative": mix["negative"], "mixed_opinions": mix["mixed"],
         "independent_threads": len(uniq), "duplicates_merged": sum(t.get("duplicates", 0) for t in uniq),
         "sources": srcs, "evidence_level": ev["level"],
-        "evidence_text": f"{_plural(len(uniq), 'independent thread')} across {_plural(len(srcs), 'source')} "
+        "evidence_text": f"{_plural(len(uniq), 'independent thread')} stored across all weeks, from {_plural(len(srcs), 'source')} "
                          f"({ev['level'].lower()} evidence: {ev['why']}).",
         "first_observed": dates[0] if dates else None, "last_observed": dates[-1] if dates else None,
         "first_week": min(by_week), "threads": threads,
