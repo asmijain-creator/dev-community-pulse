@@ -102,7 +102,8 @@ def radar_page(res: dict, categories: dict, history: list[dict], saving: bool, f
   {_flash(flash)}
   <div class="fb-eyebrow">Emerging radar{f" · Week {_week_no(latest)}" if latest else ""}</div>
   <h1 class="fb-h1">What's starting to move</h1>
-  <p class="fb-sub">{escape(method)}</p>
+  <p class="fb-sub">{escape(method)} For new and growing technologies and project categories among what developers
+     are building, see <a href="/building?theme=emerging">Building Now → Emerging</a>.</p>
   {pending}{'' if saving else MIGRATION_NOTE}
   <div class="sec-h"><div><h2>{len(shown)} signal{'s' if len(shown) != 1 else ''}</h2></div>{toggle}</div>
   <section class="rcards">{cards}</section>
@@ -188,7 +189,7 @@ def _claims(items: list[dict]) -> str:
 def opportunity_page(name: str, category: str, latest: str, weeks: list[str], series: list[int], f: dict,
                      score: float | None, weights: dict, status_row: dict | None, log: list[dict],
                      insight: dict | None, threads: list[dict], mix: dict, saving: bool, flash: str | None,
-                     history: list[dict]) -> str:
+                     history: list[dict], extra: str = "") -> str:
     factor_rows = "".join(
         f'<div class="frow"><span>{k.capitalize()} <small>×{weights[k]:g}</small></span>{_bar(f[k])}'
         f'<small>{escape(d)}</small></div>' for k, d in FACTORS.items())
@@ -255,6 +256,7 @@ def opportunity_page(name: str, category: str, latest: str, weeks: list[str], se
   <section class="panel" style="margin-top:14px"><div class="panel-h"><h2>AI analysis</h2>{gen}</div>{ai}</section>
   <h2 class="sec-h2">Threads behind it <small>{n}</small></h2>
   <div class="evs">{''.join(_thread_link(t) for t in threads[:20]) or '<p class="sub">No threads stored.</p>'}</div>
+  {extra}
 </main>"""
     return _page(_nice(name), body, active="opps", history=history, current_week=latest, script=AI_BUSY_JS)
 

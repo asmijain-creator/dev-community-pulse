@@ -644,6 +644,65 @@ BASE_CSS = """
   @media (max-width: 1000px) { .r-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ai-grid { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 680px) { .r-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ev { grid-template-columns: minmax(0, 1fr); } .ev b { white-space: normal; } }
 
+  /* ---------- building now ---------- */
+  .bfilters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; margin-top: var(--s6); padding: 16px 18px;
+              background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .bfilters .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-3); min-width: 0; }
+  .bfilters .field.grow { flex: 1 1 220px; }
+  .bfilters select, .bfilters input { font: inherit; font-size: var(--fs-sm); padding: 8px 10px; border: 1px solid var(--border);
+                                      border-radius: 8px; background: var(--bg); color: var(--text); max-width: 220px; }
+  .bfilters input { width: 100%; max-width: none; }
+  .bf-btns { display: flex; gap: 8px; }
+  .bloading { margin-top: 10px; font-size: var(--fs-sm); color: var(--text-3); font-family: var(--mono); }
+  .bresults[aria-busy="true"] { opacity: .5; pointer-events: none; }
+  .row2.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .blist { display: grid; gap: 4px; margin-top: 12px; }
+  .brow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(60px, 1fr) 36px; gap: 12px; align-items: center;
+          padding: 6px 8px; border-radius: 8px; font-size: var(--fs-sm); }
+  .brow:hover, .brow.on { background: var(--hover); }
+  .brow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brow i { display: block; height: 8px; border-radius: 4px; background: var(--chip); overflow: hidden; }
+  .brow u { display: block; height: 100%; background: var(--bar); border-radius: 4px; }
+  .brow b { text-align: right; font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chips-row .chip small { color: var(--text-3); font-size: 11px; }
+  .sub-h { font-size: var(--fs-md); font-weight: 600; margin: 18px 0 6px; }
+  .ttab { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  .ttab th { text-align: left; font-weight: 500; color: var(--text-3); font-size: 11px; font-family: var(--mono); padding: 6px 8px;
+             border-bottom: 1px solid var(--border); }
+  .ttab td { padding: 6px 8px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+  .ttab .n { text-align: right; font-family: var(--mono); font-size: 12px; }
+  .ttab tr.tot td { color: var(--text-3); font-size: 12px; }
+  .bgroup { border-bottom: 1px solid var(--border-soft); padding: 10px 0; }
+  .bgroup summary { cursor: pointer; display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs-sm); }
+  .bgroup summary .mono { font-size: 11px; color: var(--text-3); }
+  .bgroup ul { margin-top: 8px; }
+  .bcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .bcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; min-width: 0;
+           display: flex; flex-direction: column; gap: 8px; }
+  .b-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .b-title { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.35; }
+  .b-title a:hover { text-decoration: underline; }
+  .b-sum { margin: 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; }
+  .ai-tag { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .03em; text-transform: uppercase;
+            color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 4px;
+            padding: 0 5px; margin-left: 6px; vertical-align: 2px; font-weight: 500; }
+  .tchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tchip { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--chip); color: var(--text); }
+  .tchip.inf { background: transparent; border: 1px dashed var(--border); color: var(--text-3); }
+  .b-block { margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5; }
+  .bquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--border); font-size: var(--fs-sm); color: var(--text-2);
+            line-height: 1.5; font-style: italic; }
+  .bquote small { display: block; font-style: normal; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+  .b-foot { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: auto; padding-top: 8px;
+            border-top: 1px solid var(--border-soft); }
+  .b-foot .mono { font-size: 11px; color: var(--text-3); }
+  .b-links { margin-left: auto; font-size: var(--fs-sm); } .b-links a { color: var(--link); }
+  .note-box.err { background: color-mix(in srgb, var(--red) 10%, var(--surface)); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+  @media (max-width: 1000px) { .bcards, .row2.even { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 680px) { .bfilters select { max-width: none; width: 100%; } .bfilters .field { flex: 1 1 140px; }
+                              .b-links { margin-left: 0; } }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -782,6 +841,7 @@ RUN_OVERLAY = """
       <li data-at="40">Comparing mentions with last week</li>
       <li data-at="48">Writing the summary</li>
       <li data-at="70">Saving it and emailing you</li>
+      <li data-at="85">Finding what developers are building (Building Now)</li>
     </ol>
     <div class="run-bar"><u id="run-bar"></u></div>
   </div>
@@ -803,7 +863,7 @@ RUN_OVERLAY = """
         const next = steps[i + 1], started = s >= +li.dataset.at, finished = next && s >= +next.dataset.at;
         li.className = finished ? 'done' : started ? 'active' : '';
       });
-      document.getElementById('run-bar').style.width = Math.min(95, s / 80 * 100) + '%';
+      document.getElementById('run-bar').style.width = Math.min(95, s / 140 * 100) + '%';
       if (s > 120) document.getElementById('run-note').textContent = 'Taking longer than usual, still working. The server stops after 5 minutes.';
     };
     tick(); timer = setInterval(tick, 500);
@@ -817,7 +877,8 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
     tabs = [("/", "This week", "brief"), ("/recent", "Recently viewed", "recent"), ("/radar", "Radar", "radar"),
-            ("/opportunities", "Opportunities", "opps"), ("/pain-points", "Pain points", "points"),
+            ("/opportunities", "Opportunities", "opps"), ("/building", "Building Now", "building"),
+            ("/pain-points", "Pain points", "points"),
             ("/watchlist", "Sumit’s watchlist", "watch")]
     more = [("/unresolved", "Unresolved threads", "unresolved"), ("/evidence", "Data quality", "quality"),
             ("/topics", "Keywords", "topics"), ("/health", "System health", "health")]
@@ -1718,7 +1779,8 @@ def _bar_chart(points: list[dict], current: str | None) -> str:
             f'{"".join(parts)}</svg><div class="tip" hidden></div></div>')
 
 
-def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: list[dict], history: list[dict]) -> str:
+def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: list[dict], history: list[dict],
+                    extra: str = "") -> str:
     """One pain point: headline numbers, mentions per week, and the threads it came from."""
     cur = next((p for p in weeks if p["week_start"] == week), weeks[-1] if weeks else None)
     idx = weeks.index(cur) if cur else -1
@@ -1786,6 +1848,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
     {chart}
     <h2 class="sec">Threads behind it <small>{len(threads)}</small></h2>
     {threads_html}
+    {extra}
   </div>
 </main>"""
     crumbs = (f'<a href="/">Briefs</a><span>/</span><a href="/brief/{escape(week or "")}/pain-points">All pain points</a>'

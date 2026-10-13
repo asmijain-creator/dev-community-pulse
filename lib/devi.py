@@ -40,6 +40,9 @@ Rules:
 - Prefer the threads listed under "Most relevant threads". Quote thread titles exactly; never make up quotations.
 - Be brief: under 200 words unless asked for more. Plain, professional language, no emojis.
   Write "AI", "CI", "PR" in capitals.
+- The "Build activity" section lists public discussions where developers share what they are building
+  (Building Now). Counts there are of discussions, not of users or adoption; say so if you use them.
+  Link build discussions with their URL from that section.
 """
 
 
@@ -99,11 +102,44 @@ def build_context(sb, question: str = "") -> tuple[str, dict]:
     for t in topics:
         out.append(f"{t['category']} ({'active' if t.get('active') else 'paused'}): {', '.join(t.get('keywords') or [])}")
 
+    builds = _build_activity(sb, question)
+    if builds:
+        out.append("\n## Build activity: what developers shared they are building (posted | source | category | "
+                   "project | technologies named | blockers | url)")
+        out += [_build_line(b) for b in builds]
+
     dates = sorted((p.get("created_at") or "")[:10] for p in posts if p.get("created_at"))
     meta = {"threads": len(posts), "relevant": len(relevant), "weeks": weeks,
             "from": dates[0] if dates else None, "to": dates[-1] if dates else None,
-            "urls": {p["url"] for p in posts if p.get("url")}}
+            "urls": {p["url"] for p in posts if p.get("url")} | {b["discussion_url"] for b in builds}}
     return "\n".join(out), meta
+
+
+def _build_activity(sb, question: str, n: int = 40) -> list[dict]:
+    """Building Now discussions most relevant to the question, newest first among equals.
+    Empty when migration 003 isn't applied or nothing is stored."""
+    try:
+        from lib.build_pipeline import load
+        items = load(sb, days=60)["items"]
+    except Exception:
+        return []
+    q = tokens(question)
+
+    def rank(it):
+        text = " ".join([it.get("project_title") or "", it.get("title_raw") or "", it.get("summary") or "",
+                         it.get("category") or "", " ".join(t["name"] for t in it["techs"]),
+                         " ".join(b["detail"] for b in it["blockers"])])
+        return len(q & tokens(text)), it.get("posted_at") or ""
+
+    return sorted(items, key=rank, reverse=True)[:n]
+
+
+def _build_line(b: dict) -> str:
+    techs = ", ".join(t["name"] + ("" if t["explicit"] else " (inferred)") for t in b["techs"])
+    blockers = "; ".join(f"{x['kind']}: {x['detail']}" for x in b["blockers"] if x["explicit"])
+    title = " ".join((b.get("project_title") or "").split())[:100]
+    return (f"{(b.get('posted_at') or '')[:10]} | {b.get('source')} | {b.get('category')} | {title} | "
+            f"{techs} | {blockers} | {b.get('discussion_url')}")
 
 
 def guard_links(answer: str, allowed: set[str]) -> tuple[str, int, int]:

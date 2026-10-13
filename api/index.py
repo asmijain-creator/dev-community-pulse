@@ -8,6 +8,7 @@ import asyncio
 import base64
 import os
 import secrets
+import time
 from urllib.parse import quote
 import sys
 from datetime import datetime, timedelta, timezone
@@ -25,6 +26,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lib import devi
+from lib import build_pipeline as BP, building as BLD, views_build as VB
 from lib import opportunity_ai, radar, scoring
 from lib import views_intel as VI
 from lib import workspace as W
@@ -249,7 +251,8 @@ def pain_point_detail(name: str = "", week: str = ""):
                              "engagement": 0, "category": category}) for w in axis]
     threads = sb.table("posts").select("source,title,url,score,comments,created_at,is_unresolved") \
         .eq("pain_point", name).order("created_at", desc=True).limit(40).execute().data or []
-    return V.pain_point_page(name, week or weeks[-1]["week_start"], weeks, threads, hist)
+    return V.pain_point_page(name, week or weeks[-1]["week_start"], weeks, threads, hist,
+                             extra=VB.build_panel(_builds_for(sb, name), name))
 
 
 @app.get("/brief/{week}/pain-points", response_class=HTMLResponse)
@@ -445,7 +448,8 @@ def opportunity(request: Request, name: str = ""):
     return VI.opportunity_page(
         name, row["category"], latest, weeks, series, row["factors"], row["score"], weights,
         W.opportunity_rows(sb).get(name), W.opportunity_log(sb, name), W.get_insight(sb, name, latest),
-        threads, opinion_mix(threads), W.ready(sb, "opportunities"), _flash_from(request.query_params), hist)
+        threads, opinion_mix(threads), W.ready(sb, "opportunities"), _flash_from(request.query_params), hist,
+        extra=VB.build_panel(_builds_for(sb, name), name))
 
 
 @app.post("/opportunity/save")
@@ -513,6 +517,120 @@ def evidence(request: Request):
 
 
 # ---------- admin ----------
+
+# ---------- Building Now ----------
+def _builds_for(sb, name: str) -> list[dict] | None:
+    """Build discussions connected to one pain point, or None when Building Now isn't set up (panel hidden)."""
+    if not W.ready(sb, "build_items"):
+        return None
+    try:
+        return BLD.builds_for_pain_point(name, BP.load(sb)["items"])
+    except Exception as e:
+        print(f"[building] related builds failed: {e!r}")
+        return None
+
+
+def _build_filters(q) -> dict:
+    try:
+        days = int(q.get("days", 30))
+    except ValueError:
+        days = 30
+    f = {"days": days if days in (7, 30, 90, 0) else 30}
+    for k, allowed in (("category", set(BLD.CATEGORIES)), ("source", {"hn", "stackoverflow", "github"}),
+                       ("blocker", set(BLD.BLOCKERS)), ("theme", {"emerging", "recurring"})):
+        f[k] = q.get(k) if q.get(k) in allowed else ""
+    f["tech"] = BLD.tech_key(q.get("tech") or "")
+    f["q"] = " ".join((q.get("q") or "").split())[:100]
+    return f
+
+
+def _related_pain_points(sb, f: dict, items: list[dict], tech_label: str, labels: list[str], weeks: list[str]) -> dict | None:
+    """Pain points connected to the selected technology or category, only where stored records support it."""
+    if f["tech"] and weeks:
+        threads = sb.table("posts").select("title,body,pain_point").in_("week_start", weeks) \
+            .not_.is_("pain_point", "null").limit(1000).execute().data or []
+        rows = BLD.pain_points_for_tech(tech_label, threads)
+        for r in rows:
+            r["basis"] = f"mention {tech_label} by name"
+        return {"name": tech_label, "rows": rows,
+                "how": f"Pain points from the last {len(weeks)} weekly briefs whose threads mention {tech_label} by name (text match, not AI)."}
+    if f["category"]:
+        found: dict[str, list] = {}
+        for it in items:
+            if it.get("category") != f["category"]:
+                continue
+            for b in it["blockers"]:
+                m = BLD.match_pain_point(b, labels) if b["explicit"] else None
+                if m:
+                    found.setdefault(m[0], []).append(it)
+        rows = [{"pain_point": k, "threads": v, "basis": "in this category report a blocker sharing 2+ words with it (suggested)"}
+                for k, v in sorted(found.items(), key=lambda x: -len(x[1]))][:6]
+        return {"name": f["category"], "rows": rows,
+                "how": "Suggested connections: build discussions in this category whose quoted blocker shares at least two words with a pain point."}
+    return None
+
+
+@app.get("/building", response_class=HTMLResponse)
+def building(request: Request):
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    sb = db()
+    f = _build_filters(request.query_params)
+    hist = _history(sb)
+    if not W.ready(sb, "build_items"):
+        return VB.building_page(None, f, hist, state="migrate")
+    try:
+        d = BP.load(sb)
+        now = datetime.now(timezone.utc)
+        today = now.date()
+        items = d["items"]
+        tt, tc = BLD.trends(items, today, "tech"), BLD.trends(items, today, "category")
+        shown = BLD.apply_filters(items, f, today)
+        if f["theme"]:
+            keys = BLD.theme_keys(tt, f["theme"]) | BLD.theme_keys(tc, f["theme"])
+            shown = [it for it in shown if it.get("category") in keys
+                     or any(t["explicit"] and t["key"] in keys for t in it["techs"])]
+        tech_options = BLD.top_counts(BLD.apply_filters(items, {"days": f["days"]}, today), "tech", 40)
+        tech_label = next((t["name"] for it in items for t in it["techs"] if t["key"] == f["tech"]), f["tech"])
+        _, weeks, metrics, _ = _recent(sb)
+        labels = sorted({m["pain_point"] for m in metrics})
+        d.update(f=f, shown=shown, recent=sorted(shown, key=lambda it: it.get("posted_at") or "", reverse=True)[:24],
+                 cats=BLD.top_counts(shown, "category"), techs=BLD.top_counts(shown, "tech", 12),
+                 trend_tech=tt, trend_cat=tc, blockers=BLD.blocker_groups(shown), labels=labels,
+                 tech_options=tech_options, related=_related_pain_points(sb, f, items, tech_label, labels, weeks),
+                 fresh=BLD.freshness(items, d["refreshes"], now), flash=_build_message(request.query_params))
+    except Exception as e:
+        print(f"[building] failed: {e!r}")
+        return VB.building_page(None, f, hist, state="error")
+    return VB.building_page(d, f, hist)
+
+
+def _build_message(q) -> str | None:
+    s = q.get("updated")
+    if s == "busy":
+        return "An update is already running. Refresh this page in a minute."
+    if s == "failed":
+        return "The update failed. Details are under Data freshness and coverage."
+    if s and s.isdigit():
+        return f"Updated: {s} new build discussion{'s' if s != '1' else ''} found."
+    return None
+
+
+@app.post("/building/refresh")
+def building_refresh():
+    """Collect and classify new build discussions only (no brief, no email). Open like Run now.
+    Repeat clicks cost almost nothing: discussions already classified are never sent to Gemini again."""
+    sb = db()
+    if not W.ready(sb, "build_items"):
+        return RedirectResponse("/building", status_code=303)
+    if W.run_in_progress(sb):
+        return RedirectResponse("/building?updated=busy", status_code=303)
+    stats = BP.refresh(sb, "manual", budget_s=240)
+    if not stats.get("ok"):
+        return RedirectResponse("/building?updated=failed", status_code=303)
+    return RedirectResponse(f"/building?updated={int(stats.get('relevant', 0))}", status_code=303)
+
 
 @app.get("/topics", response_class=HTMLResponse)
 def topics_get(request: Request):
@@ -601,6 +719,7 @@ def api_run_digest(request: Request):
 def _do_run(days_back: int = 7, trigger: str = "manual") -> dict:
     """Run the pipeline once, logged in `runs` (when migration 002 is applied).
     A run that started less than 10 minutes ago and hasn't finished blocks a second one."""
+    t0 = time.monotonic()
     sb = db()
     if W.run_in_progress(sb):
         return {"ok": False, "skipped": True, "error": "another run is already in progress"}
@@ -617,12 +736,29 @@ def _do_run(days_back: int = 7, trigger: str = "manual") -> dict:
         except Exception:
             pass
         raise
+    result["building"] = _refresh_building(sb, trigger, t0)
     try:
         W.finish_run(sb, run_id, "success" if result.get("ok") else "failed",
                      {**stats, **{k: v for k, v in result.items() if k != "ok"}}, result.get("error"))
     except Exception as e:
         print(f"[run] couldn't log run end: {e!r}")
     return result
+
+
+def _refresh_building(sb, trigger: str, t0: float) -> dict:
+    """Building Now update after the brief. Uses only the time left in the 300 s function limit and never
+    fails the run: anything not classified now is picked up next time."""
+    budget = 270 - (time.monotonic() - t0)
+    if budget < 60:
+        return {"ok": False, "skipped": "not enough time left in this run"}
+    try:
+        if not W.ready(sb, "build_items"):
+            return {"ok": False, "skipped": "migration 003 not applied"}
+        s = BP.refresh(sb, trigger, budget_s=budget)
+        return {k: s.get(k) for k in ("ok", "candidates", "classified", "relevant", "pending", "error")}
+    except Exception as e:
+        print(f"[building] refresh after run failed: {e!r}")
+        return {"ok": False, "error": repr(e)[:200]}
 
 
 def _pipeline(days_back: int, stats: dict) -> dict:
