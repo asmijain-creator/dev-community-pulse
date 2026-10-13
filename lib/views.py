@@ -703,6 +703,9 @@ BASE_CSS = """
   @media (max-width: 680px) { .bfilters select { max-width: none; width: 100%; } .bfilters .field { flex: 1 1 140px; }
                               .b-links { margin-left: 0; } }
 
+  td.acts, span.acts { white-space: nowrap; } td.acts > * + *, span.acts > * + * { margin-left: 6px; }
+  td.sel { width: 28px; padding-right: 0; }
+
   /* ---------- responsive ---------- */
   @media (max-width: 1180px) { .content { grid-template-columns: minmax(0, 1fr); max-width: 880px; } .rail { display: none; } }
   @media (max-width: 860px) {
@@ -873,6 +876,11 @@ RUN_OVERLAY = """
 </script>"""
 
 
+def _share():
+    from lib import views_share
+    return views_share
+
+
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
@@ -881,7 +889,8 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
             ("/pain-points", "Pain points", "points"),
             ("/watchlist", "Sumit’s watchlist", "watch")]
     more = [("/unresolved", "Unresolved threads", "unresolved"), ("/evidence", "Data quality", "quality"),
-            ("/topics", "Keywords", "topics"), ("/health", "System health", "health")]
+            ("/topics", "Keywords", "topics"), ("/reports", "Shared reports", "reports"),
+            ("/health", "System health", "health")]
     nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
                   + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
     nav += (f'<details class="more-menu"><summary class="{"on" if active in {k for _, _, k in more} else ""}">More</summary>'
@@ -904,6 +913,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 {BASE_CSS}
+<style>{_share().SHARE_CSS}</style>
 </head><body>
 <header class="topnav"><div class="topnav-in">
   <a class="brand2" href="/"><i>{_icon("pulse")}</i>DevvIT</a>
@@ -915,6 +925,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
 {RUN_OVERLAY}
 {DEVI_WIDGET}
+{_share().SHARE_WIDGET}
 {WATCH_JS}
 {script}
 </body></html>"""
@@ -1349,7 +1360,7 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
                  f'<td class="tn"><a href="{href}"><b>{escape(_nice(name))}</b></a><small>{escape(m.get("category") or "Other")}</small></td>'
                  f'<td class="num cur">{n}</td><td class="num">{"—" if last is None else last}</td>'
                  f'<td>{_chg(n, last)}</td><td>{_spark(vals) if len(weeks) > 1 else chr(8212)}</td>'
-                 f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td><td>{_watch_btn(name, n)}</td></tr>')
+                 f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td><td class="acts">{_watch_btn(name, n)}{_share().share_btn("pain_point", name)}</td></tr>')
     ranked = f"""
 <section class="panel" style="margin-top:14px">
   <div class="panel-h"><div><h2>Pain points, ranked</h2>
@@ -1409,7 +1420,7 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
     <div><div class="fb-eyebrow">Friday brief · Week {_week_no(week)} · {period}</div>
       <h1 class="fb-h1">{escape(heading)}</h1><p class="fb-sub">{escape(sub)}</p></div>
     <div class="fb-actions"><div class="mono gen">Generated {escape(_ist_label(b.get("created_at")))}</div>
-      <div class="fb-btns">{compare}{RUN_BUTTON}</div></div>
+      <div class="fb-btns">{compare}{_share().share_btn("weekly", week, "Share report")}{RUN_BUTTON}</div></div>
   </header>
   {kpis}
   <section class="wstrip" id="wstrip" hidden></section>
@@ -1423,7 +1434,7 @@ RANK_JS = """<script>
 (() => {
   const t = document.getElementById('rank'); if (!t) return;
   const body = t.tBodies[0];
-  body.querySelectorAll('tr').forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a')) location.href = r.dataset.href; }));
+  body.querySelectorAll('tr').forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a,button,input,label')) location.href = r.dataset.href; }));
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
     [...body.rows].sort((a, c) => c.dataset[b.dataset.k] - a.dataset[b.dataset.k]).forEach(r => body.appendChild(r));
@@ -1603,6 +1614,8 @@ def error_page(status: int, detail: str | None) -> str:
     heading, text = known.get(status, ("Something went wrong", "DevvIT couldn't load this page. Please try again in a moment."))
     if status == 404 and detail and detail.lower().startswith("no brief"):
         text = "There's no brief for that week. Pick another week from the menu, or open the latest brief."
+    elif status in (400, 404, 409, 503) and detail and detail not in ("Not Found", "Bad Request", "Conflict"):
+        text = detail          # DevvIT's own explanations (e.g. a missing database update); server errors stay generic
     body = f"""
 <main class="fb">
   <div class="fb-eyebrow">Error {status}</div>
@@ -1689,11 +1702,13 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
         href = _point_href(m["pain_point"], week)
         rows_html += (
             f'<tr data-cat="{escape(cat)}" data-href="{href}">'
+            f'<td class="sel">{_share().select_box("pain_point", m["pain_point"])}</td>'
             f'<td class="pp"><a href="{href}">{escape(m["pain_point"])}</a></td>'
             f'<td><span class="pill {_cat_class(cat)}">{escape(cat)}</span></td>'
             f'<td class="n" data-v="{n}">{_meter(n, max_m)}</td>'
             f'<td class="n {"warn" if u else "zero"}" data-v="{u}">{u}</td>'
-            f'<td class="n {"" if e else "zero"}" data-v="{e}">{e:,}</td><td>{_watch_btn(m["pain_point"], n)}</td></tr>'
+            f'<td class="n {"" if e else "zero"}" data-v="{e}">{e:,}</td><td class="acts">{_watch_btn(m["pain_point"], n)}'
+            f'{_share().share_btn("pain_point", m["pain_point"])}</td></tr>'
         )
     chips = '<button class="chip on" data-cat="">All</button>' + "".join(
         f'<button class="chip dotted {_cat_class(c)}" data-cat="{escape(c)}">{escape(c)}</button>'
@@ -1705,12 +1720,13 @@ def pain_points_page(week: str | None, metrics_rows: list[dict], sections: list[
   <label class="search">{_icon("search")}<input id="q" type="search" placeholder="Filter pain points…" aria-label="Filter pain points"></label>
 </div>
 <div class="tbl"><table id="pp">
-  <thead><tr><th data-sort="text">Pain point</th><th data-sort="text">Category</th>
+  <thead><tr><th title="Select for a combined report"><span class="sr">Select</span></th><th data-sort="text">Pain point</th><th data-sort="text">Category</th>
     <th class="n" data-sort="num" aria-sort="descending">Mentions</th><th class="n" data-sort="num">Unresolved</th>
     <th class="n" data-sort="num">Engagement</th><th></th></tr></thead>
   <tbody>{rows_html}</tbody>
 </table><div class="tfoot" id="count">{len(metrics_rows)} pain points</div></div>
-<p class="hint">Unresolved: threads without an accepted answer or fix. Engagement: votes plus comments.</p>"""
+<p class="hint">Unresolved: threads without an accepted answer or fix. Engagement: votes plus comments.
+  Tick pain points (and opportunities on the Opportunities page) to share them together in one report.</p>"""
     else:
         table = '<div class="tbl"><div class="empty">No pain points yet. Click <b>Run now</b> to generate the first brief.</div></div>'
 
@@ -1841,7 +1857,7 @@ def pain_point_page(name: str, week: str | None, weeks: list[dict], threads: lis
 <main class="content narrow" data-recent="{escape(name)}">
   <div>
     {back}
-    <div class="pp-head"><h1>{escape(_nice(name))}</h1>{_watch_btn(name, n)}</div>
+    <div class="pp-head"><h1>{escape(_nice(name))}</h1><span class="acts">{_watch_btn(name, n)}{_share().share_btn("pain_point", name)}</span></div>
     <p class="lede" style="margin-bottom:var(--s6)"><span class="pill {_cat_class(category)}">{escape(category)}</span>
       &nbsp;{escape(_week_title(week)) if week else ""}</p>
     {stats}
@@ -1907,12 +1923,13 @@ TABLE_JS = """<script>
     count.textContent = shown === rows.length ? rows.length + ' pain points' : shown + ' of ' + rows.length + ' pain points';
   };
   q.addEventListener('input', apply);
-  rows.forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a')) location.href = r.dataset.href; }));
+  rows.forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a,button,input,label')) location.href = r.dataset.href; }));
   document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
     document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
     cat = c.dataset.cat; apply();
   }));
-  table.querySelectorAll('th[data-sort]').forEach((th, col) => th.addEventListener('click', () => {
+  table.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+    const col = th.cellIndex;
     const asc = th.getAttribute('aria-sort') === 'descending';
     table.querySelectorAll('th').forEach(x => x.removeAttribute('aria-sort'));
     th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');

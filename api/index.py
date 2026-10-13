@@ -9,7 +9,7 @@ import base64
 import os
 import secrets
 import time
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -20,12 +20,13 @@ if _ROOT not in sys.path:
 
 import markdown as md
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.exception_handlers import http_exception_handler
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lib import devi
+from lib import share_snapshot as SS, sharing as SH, views_share as VS
 from lib import build_pipeline as BP, building as BLD, views_build as VB
 from lib import opportunity_ai, radar, scoring
 from lib import views_intel as VI
@@ -517,6 +518,228 @@ def evidence(request: Request):
 
 
 # ---------- admin ----------
+
+# ---------- Sharing ----------
+_NO_STORE = {"Cache-Control": "no-store, private", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex, nofollow"}
+MAX_REPORT_ITEMS = 20
+
+
+def _base_url(request: Request) -> str:
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    return f"{proto.split(',')[0].strip()}://{host.split(',')[0].strip()}"
+
+
+def _link(request: Request, row: dict) -> str:
+    return f"{_base_url(request)}/r/{SH.token_for(row['token_nonce'])}"
+
+
+def _weights(w: str) -> dict:
+    """Opportunity weights from the explorer's query string (e.g. '?w_growth=2'), clamped like the page does."""
+    q = {k: v[0] for k, v in parse_qs((w or "").lstrip("?")).items() if v}
+    return scoring.parse_weights(q)
+
+
+def _single_snapshot(sb, kind: str, name: str, w: str = "", title: str = "", intro: str = "") -> tuple[dict, list[dict]]:
+    """Snapshot for one pain point, one opportunity or the latest weekly report. 404 when the data isn't there."""
+    ctx = SS.load_context(sb)
+    if kind == "pain_point":
+        sec = SS.pain_point(sb, name, ctx)
+        if not sec:
+            raise HTTPException(404, "That pain point isn't in DevvIT's data.")
+        sections = [sec]
+    elif kind == "opportunity":
+        sec = SS.opportunity(sb, name, ctx, _weights(w))
+        if not sec:
+            raise HTTPException(404, "That opportunity isn't in the latest brief.")
+        sections = [sec]
+    elif kind == "weekly":
+        sec = SS.brief(sb, ctx)
+        if not sec:
+            raise HTTPException(404, "There is no weekly brief yet.")
+        sections = [sec, SS.trends(sb, ctx)]
+        name = sec["week"]
+        title = title or f"Developer intelligence report · week of {sec['week']}"
+    else:
+        raise HTTPException(400, "Unknown report type.")
+    title = SH.clean_text(title or sections[0]["title"], SH.MAX_TITLE)
+    return SS.assemble(kind, title, SH.clean_text(intro, SH.MAX_INTRO), sections, ctx), [{"type": kind, "name": name}]
+
+
+def _combined_snapshot(sb, items: list[str], title: str, intro: str, with_trends: bool) -> tuple[dict, list[dict], list[str]]:
+    """Snapshot for several pain points and opportunities, in the order given. Unknown items are reported, not invented."""
+    ctx = SS.load_context(sb)
+    sections, refs, missing, seen = [], [], [], set()
+    for it in items[:MAX_REPORT_ITEMS]:
+        kind, _, name = it.partition(":")
+        if (kind, name) in seen or kind not in ("pp", "op") or not name:
+            continue
+        seen.add((kind, name))
+        sec = SS.pain_point(sb, name, ctx) if kind == "pp" else SS.opportunity(sb, name, ctx)
+        if sec:
+            sections.append(sec)
+            refs.append({"type": "pain_point" if kind == "pp" else "opportunity", "name": name})
+        else:
+            missing.append(SS.nice(name))
+    if with_trends:
+        sections.append(SS.trends(sb, ctx))
+    title = SH.clean_text(title, SH.MAX_TITLE) or "Developer intelligence report"
+    return SS.assemble("combined", title, SH.clean_text(intro, SH.MAX_INTRO), sections, ctx), refs, missing
+
+
+@app.get("/api/share/summary")
+def share_summary(kind: str, name: str = "", w: str = ""):
+    """Copy summary: built from the same data as a shared report. Public, like the dashboards it summarises."""
+    try:
+        snap, _ = _single_snapshot(db(), kind, name, w)
+    except HTTPException as e:
+        return JSONResponse({"detail": e.detail}, status_code=e.status_code)
+    return {"text": SH.summary_text(snap)}
+
+
+@app.get("/share/print", response_class=HTMLResponse)
+def share_print(kind: str, name: str = "", w: str = ""):
+    """Print-friendly page of live data (Export). Nothing is saved."""
+    snap, _ = _single_snapshot(db(), kind, name, w)
+    return HTMLResponse(VS.report_page(snap, banner=VS.print_banner("Print preview of current data, not a saved report."),
+                                       show_copy_link=False), headers=_NO_STORE)
+
+
+@app.post("/reports/print", response_class=HTMLResponse)
+def reports_print(item: list[str] = Form(default=[]), title: str = Form(""), intro: str = Form(""), trends: str = Form("")):
+    snap, _, _ = _combined_snapshot(db(), item, title, intro, trends == "1")
+    return HTMLResponse(VS.report_page(snap, banner=VS.print_banner("Print preview, not a saved report."), show_copy_link=False),
+                        headers=_NO_STORE)
+
+
+@app.get("/reports/new", response_class=HTMLResponse)
+def reports_new(request: Request, pp: list[str] = Query(default=[]), op: list[str] = Query(default=[])):
+    _check_admin(request)
+    sb = db()
+    items = [f"pp:{n}" for n in pp] + [f"op:{n}" for n in op]
+    ctx_snap, _, missing = _combined_snapshot(sb, items, "", "", False)
+    sections = ctx_snap["sections"]
+    trends = SS.trends(sb, SS.load_context(sb))
+    week = ctx_snap.get("latest_week")
+    return VS.builder_page(sections, missing, f"Developer intelligence report{f' · week of {week}' if week else ''}",
+                           SS.executive_summary(sections), trends, _history(sb), W.ready(sb, "shared_reports"))
+
+
+@app.post("/share/create")
+def share_create(request: Request, kind: str = Form(...), name: str = Form(""), w: str = Form(""),
+                 title: str = Form(""), intro: str = Form(""), item: list[str] = Form(default=[]), trends: str = Form(""),
+                 visibility: str = Form("unlisted"), expires: str = Form("30")):
+    """Create a shared report (owner only). The snapshot is built on the server from stored data; only the title
+    and introduction come from the form, as plain text."""
+    _check_admin(request)
+    sb = db()
+    if not W.ready(sb, "shared_reports"):
+        raise HTTPException(503, "Sharing needs the database update: run supabase/migrations/004_shared_reports.sql in Supabase first.")
+    if visibility not in SH.VISIBILITY:
+        raise HTTPException(400, "Unknown visibility.")
+    try:
+        exp = SH.expiry(expires, datetime.now(timezone.utc))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if kind == "combined":
+        snap, refs, _ = _combined_snapshot(sb, item, title, intro, trends == "1")
+        if not refs:
+            raise HTTPException(400, "Select at least one pain point or opportunity that is in DevvIT's data.")
+    else:
+        snap, refs = _single_snapshot(sb, kind, name, w, title, intro)
+    row, _ = SH.create(sb, kind, snap["title"], refs, snap, visibility, exp)
+    return RedirectResponse(f"/reports/{row['id']}?msg=created", status_code=303)
+
+
+@app.get("/reports", response_class=HTMLResponse)
+def reports_list(request: Request):
+    _check_admin(request)
+    sb = db()
+    ok = W.ready(sb, "shared_reports")
+    rows = SH.all_reports(sb) if ok else []
+    now = datetime.now(timezone.utc)
+    return VS.reports_page(rows, {r["id"]: _link(request, r) for r in rows}, {r["id"]: SH.status(r, now) for r in rows},
+                           _history(sb), ok, _share_flash(request.query_params))
+
+
+def _share_flash(q) -> str | None:
+    return {"created": "Report created. Copy the link below to share it.", "revoked": "Access revoked. The link no longer works.",
+            "updated": "Settings saved."}.get(q.get("msg") or "")
+
+
+@app.get("/reports/{rid}", response_class=HTMLResponse)
+def report_manage(request: Request, rid: int):
+    _check_admin(request)
+    sb = db()
+    row = SH.by_id(sb, rid) if W.ready(sb, "shared_reports") else None
+    if not row:
+        raise HTTPException(404, "That report doesn't exist.")
+    link = _link(request, row)
+    state = SH.status(row, datetime.now(timezone.utc))
+    return VS.created_page(row, link, SH.summary_text(row["snapshot"], link), state, _history(sb), _share_flash(request.query_params))
+
+
+@app.post("/reports/{rid}/revoke")
+def report_revoke(request: Request, rid: int):
+    _check_admin(request)
+    sb = db()
+    if not SH.by_id(sb, rid):
+        raise HTTPException(404, "That report doesn't exist.")
+    sb.table("shared_reports").update({"revoked_at": datetime.now(timezone.utc).isoformat()}).eq("id", rid) \
+        .is_("revoked_at", "null").execute()
+    return RedirectResponse(f"/reports/{rid}?msg=revoked", status_code=303)
+
+
+@app.post("/reports/{rid}/update")
+def report_update(request: Request, rid: int, visibility: str = Form("unlisted"), expires: str = Form("keep"),
+                  expires_on: str = Form("")):
+    _check_admin(request)
+    sb = db()
+    row = SH.by_id(sb, rid)
+    if not row:
+        raise HTTPException(404, "That report doesn't exist.")
+    if row.get("revoked_at"):
+        raise HTTPException(409, "A revoked report can't be changed.")
+    if visibility not in SH.VISIBILITY:
+        raise HTTPException(400, "Unknown visibility.")
+    changes = {"visibility": visibility}
+    choice = expires_on.strip() or expires
+    if choice != "keep":
+        try:
+            exp = SH.expiry(choice, datetime.now(timezone.utc))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        changes["expires_at"] = exp.isoformat() if exp else None
+    sb.table("shared_reports").update(changes).eq("id", rid).execute()
+    return RedirectResponse(f"/reports/{rid}?msg=updated", status_code=303)
+
+
+@app.get("/r/{token}", response_class=HTMLResponse)
+def shared_report(request: Request, token: str):
+    """The read-only report recipients open. Revocation, expiry and privacy are checked here, on every request."""
+    try:
+        sb = db()
+        row = SH.by_token(sb, token) if W.ready(sb, "shared_reports") else None
+    except Exception as e:
+        print(f"[share] lookup failed: {type(e).__name__}")       # never log the token
+        code, html = VS.link_error("unavailable")
+        return HTMLResponse(html, status_code=code, headers=_NO_STORE)
+    if not row:
+        code, html = VS.link_error("invalid")
+        return HTMLResponse(html, status_code=code, headers=_NO_STORE)
+    now = datetime.now(timezone.utc)
+    state = SH.status(row, now)
+    if state != "active":
+        code, html = VS.link_error(state)
+        return HTMLResponse(html, status_code=code, headers=_NO_STORE)
+    if row["visibility"] == "private":
+        _check_admin(request)
+    try:
+        SH.touch(sb, row, now)
+    except Exception:
+        pass
+    return HTMLResponse(VS.report_page(row["snapshot"]), headers=_NO_STORE)
+
 
 # ---------- Building Now ----------
 def _builds_for(sb, name: str) -> list[dict] | None:

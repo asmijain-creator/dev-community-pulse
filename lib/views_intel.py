@@ -9,6 +9,7 @@ from urllib.parse import quote
 from lib.evidence import engagement
 from lib.scoring import FACTORS
 from lib.views import _chg, _flash, _nice, _page, _point_href, _spark, _week_no, _ago, _src
+from lib.views_share import select_box, share_btn
 from lib.workspace import STATUSES
 
 MIGRATION_NOTE = ('<div class="note-box">Saving is switched off until the database update has been applied: '
@@ -142,22 +143,22 @@ def opportunities_page(rows: list[dict], weights: dict, latest: str | None, hist
         score_txt = "—" if r["score"] is None else format(r["score"], ".0f")
         status_html = f'<span class="cov mid">{escape(st)}</span>' if st else '<span class="sub">—</span>'
         body_rows += (
-            f'<tr data-href="{href}"><td class="idx">{i:02d}</td>'
+            f'<tr data-href="{href}"><td class="sel">{select_box("opportunity", r["name"])}</td><td class="idx">{i:02d}</td>'
             f'<td class="tn"><a href="{href}"><b>{escape(_nice(r["name"]))}</b></a><small>{escape(r["category"])}</small></td>'
             f'<td class="num"><span class="score">{score_txt}</span></td>'
             + "".join(f"<td>{_bar(f[k])}</td>" for k in FACTORS)
             + f'<td class="mono small">{f["_threads"]} thr · {len(f["_sources"])} src</td>'
-            + f'<td>{status_html}</td></tr>')
+            + f'<td>{status_html}</td><td>{share_btn("opportunity", r["name"])}</td></tr>')
     table = (f"""<div class="panel" style="margin-top:14px"><div class="rank-wrap"><table class="rank" id="rank">
-  <thead><tr><th>#</th><th>Pain point</th><th class="num">Score</th>{''.join(f'<th title="{escape(d)}">{k}</th>' for k, d in FACTORS.items())}
-  <th>Evidence</th><th>Status</th></tr></thead><tbody>{body_rows}</tbody></table></div></div>"""
+  <thead><tr><th><span class="sr">Select</span></th><th>#</th><th>Pain point</th><th class="num">Score</th>{''.join(f'<th title="{escape(d)}">{k}</th>' for k, d in FACTORS.items())}
+  <th>Evidence</th><th>Status</th><th></th></tr></thead><tbody>{body_rows}</tbody></table></div></div>"""
              if rows else '<div class="panel"><p class="sub">No pain points in the latest brief yet.</p></div>')
     body = f"""
 <main class="fb">
   <div class="fb-eyebrow">Opportunity explorer{f" · Week {_week_no(latest)}" if latest else ""}</div>
   <h1 class="fb-h1">Where to look next</h1>
   <p class="fb-sub">Every pain point from the latest brief, scored on five factors you can see and re-weight.
-     Open one for its evidence, an AI analysis grounded in its threads, and to track its status.</p>
+     Open one for its evidence, an AI analysis grounded in its threads, and to track its status. Tick several to share them in one report.</p>
   <div class="note-box">Scores rank where to look first. Discussion volume is <b>not</b> evidence of willingness to pay or market size.
     {'' if has_baseline else ' Growth is left out until a second weekly brief exists.'}</div>
   {'' if saving else MIGRATION_NOTE}
@@ -169,7 +170,7 @@ def opportunities_page(rows: list[dict], weights: dict, latest: str | None, hist
 
 ROW_LINK_JS = """<script>
 document.querySelectorAll('tr[data-href]').forEach(r => r.addEventListener('click', e => {
-  if (!e.target.closest('a,button,form')) location.href = r.dataset.href;
+  if (!e.target.closest('a,button,form,input,label')) location.href = r.dataset.href;
 }));
 </script>"""
 
@@ -241,7 +242,7 @@ def opportunity_page(name: str, category: str, latest: str, weeks: list[str], se
 <main class="fb">
   {_flash(flash)}
   <a class="back" href="/opportunities">← Opportunity explorer</a>
-  <div class="pp-head"><h1 class="fb-h1">{escape(_nice(name))}</h1>
+  <div class="pp-head"><h1 class="fb-h1">{escape(_nice(name))}</h1>{share_btn("opportunity", name)}
     <div class="score-big"><span>Score</span><b>{'—' if score is None else f'{score:.0f}'}</b></div></div>
   <p class="fb-sub"><span class="u-cat">{escape(category)}</span>{' · <b>' + escape(st) + '</b>' if st else ''} ·
      <a class="more" style="margin:0" href="{_point_href(name, latest)}">Pain point history &amp; threads →</a></p>
