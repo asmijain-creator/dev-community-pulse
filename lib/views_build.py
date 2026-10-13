@@ -365,7 +365,8 @@ def _intro(fresh: dict | None) -> str:
     status = ""
     if fresh:
         status = (f'<p class="rstatus mono">Last updated {escape(_ago(fresh["last_update"]) or "never")} · refreshed weekly and on demand'
-                  f'{" · <b>stale</b>" if fresh["stale"] else ""} · <a href="#coverage">coverage</a></p>')
+                  f'{" · <b>stale</b>" if fresh["stale"] else ""} · <a href="#coverage">coverage</a>'
+                  f' · <a href="/building?watch=1&amp;days=0" title="Projects saved to the watchlist (admin password)">★ Saved projects</a></p>')
     return f"""
   <div class="fb-eyebrow">Building Now</div>
   <h1 class="fb-h1">Building Now</h1>

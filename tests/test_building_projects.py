@@ -364,3 +364,19 @@ def test_empty_state_never_shows_sample_data(monkeypatch):
     monkeypatch.setattr(w, "db", lambda: _db([]))
     r = TestClient(w.app).get("/building")
     assert "No build activity stored yet" in r.text and "Projects discovered" not in r.text
+
+
+def test_post_text_is_escaped_everywhere(monkeypatch):
+    from fastapi.testclient import TestClient
+    import api.index as w
+    from lib import workspace
+    workspace._checked.clear()
+    evil = obs(1, 2, title='<script>alert(1)</script>', blockers=[("other", '<img src=x onerror=alert(2)>', True)],
+               project_url="javascript:alert(3)")
+    sb = _db([evil])
+    sb.tables["build_blockers"].append({**evil["blockers"][0], "discussion_id": "hn:1"})
+    monkeypatch.setattr(w, "db", lambda: sb)
+    c = TestClient(w.app)
+    for page in (c.get("/building").text, c.get("/building/project?key=" + P.project_key(evil)).text):
+        assert "<script>alert(1)" not in page and "<img src=x" not in page and 'href="javascript:' not in page
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
