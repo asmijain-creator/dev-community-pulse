@@ -9,19 +9,21 @@
 import re
 from datetime import date, datetime, timedelta, timezone
 
+from lib import build_config as C
+
 
 CATEGORIES = ["AI agents & LLM apps", "Developer tools", "Web apps", "Mobile apps", "Data & analytics",
               "Infrastructure & DevOps", "Security", "Open-source libraries", "Games & creative",
               "Hardware & IoT", "Productivity", "Other"]
 ACTIVITY = {"side_project": "Side project", "product": "Product", "prototype": "Prototype",
             "open_source": "Open source", "experiment": "Experiment", "tool": "Tool", "other": "Other"}
-STAGES = {"idea": "Idea", "prototype": "Prototype", "alpha_beta": "Alpha / beta", "launched": "Launched",
-          "maintained": "Maintained"}
-BLOCKERS = {"integration": "Integration difficulties", "deployment": "Deployment failures",
-            "api_limits": "API limitations", "tool_reliability": "Tool reliability",
-            "performance": "Performance problems", "testing_debugging": "Testing and debugging",
-            "ai_agent_reliability": "AI agent reliability", "code_review": "Code review problems",
-            "other": "Other blockers"}
+# Stages Gemini may return now; older stored values (alpha_beta, maintained) are still accepted and mapped
+# for display by lib.build_projects.stage_of.
+STAGES = {"idea": "Idea", "prototype": "Prototype", "mvp": "MVP", "beta": "Beta", "launched": "Launched"}
+LEGACY_STAGES = {"alpha_beta": "Alpha / beta", "maintained": "Maintained"}
+BLOCKERS = dict(C.BLOCKER_CATEGORIES)
+LEGACY_BLOCKERS = {"integration", "api_limits", "tool_reliability", "testing_debugging", "ai_agent_reliability"}
+EVENTS = [e for e in C.EVENTS if e != "unclear"]
 TECH_KINDS = {"framework", "language", "api", "ai_model", "dev_tool", "infrastructure", "database", "other"}
 MIN_CONFIDENCE = 0.5
 
@@ -100,6 +102,7 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
         # every row carries every column, so a bulk insert never sends NULL to a NOT NULL column
         "activity_type": None, "project_title": None, "title_is_ai": False, "summary": None, "category": None,
         "stage": None, "stage_quote": None, "excerpt": None,
+        "event_type": None, "event_quote": None, "focus": None, "focus_quote": None, "enriched_at": None,
     }
     if not relevant:
         return item, [], []
@@ -107,7 +110,7 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
     name = _clip(c.get("project_name"), 120)
     named = bool(name) and _norm(name) in _norm(text)
     title = name if named else _clip(c.get("descriptive_title"), 120) or _clip(post.get("title"), 120)
-    stage = c.get("stage") if c.get("stage") in STAGES else None
+    stage = c.get("stage") if c.get("stage") in STAGES or c.get("stage") in LEGACY_STAGES else None
     stage_quote = _clip(c.get("stage_evidence"), 300)
     if not (stage and verbatim(stage_quote, text, 6)):
         stage, stage_quote = None, None
@@ -119,6 +122,7 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
         "category": c.get("category") if c.get("category") in CATEGORIES else "Other",
         "stage": stage, "stage_quote": stage_quote,
         "excerpt": excerpt if verbatim(excerpt, text) else None,
+        **validate_event(c, text),
     })
 
     techs, seen = [], set()
@@ -138,9 +142,22 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
             continue
         quote = _clip(b.get("evidence"), 300)
         ok = verbatim(quote, text)
-        blockers.append({"discussion_id": post["id"], "kind": b.get("type") if b.get("type") in BLOCKERS else "other",
+        kind = b.get("type") if b.get("type") in BLOCKERS or b.get("type") in LEGACY_BLOCKERS else "other"
+        blockers.append({"discussion_id": post["id"], "kind": kind,
                          "detail": detail, "quote": quote if ok else None, "explicit": ok})
     return item, techs[:12], blockers[:6]
+
+
+def validate_event(c: dict, text: str) -> dict:
+    """What kind of public update a post is and what the builder says they're working on now. Each is kept
+    only with words copied from the post that support it; otherwise 'unclear' / no focus."""
+    ev, ev_q = c.get("event_type"), _clip(c.get("event_evidence"), 300)
+    ok = ev in EVENTS and verbatim(ev_q, text, 6)
+    focus, focus_q = _clip(c.get("current_focus"), 160), _clip(c.get("focus_evidence"), 300)
+    has_focus = bool(focus) and verbatim(focus_q, text)
+    return {"event_type": ev if ok else "unclear", "event_quote": ev_q if ok else None,
+            "focus": focus if has_focus else None, "focus_quote": focus_q if has_focus else None,
+            "enriched_at": datetime.now(timezone.utc).isoformat()}
 
 
 # ---------- weeks ----------

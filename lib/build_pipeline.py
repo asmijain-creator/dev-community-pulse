@@ -19,7 +19,7 @@ import httpx
 from google import genai
 from google.genai import types
 
-from lib import build_config as BC, build_sync as BS, building as B
+from lib import build_config as BC, build_enrich as BE, build_sync as BS, building as B
 from lib.collectors import HN_URL, HTTP_TIMEOUT, _strip_html
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
@@ -48,6 +48,10 @@ _SCHEMA = {
                 "required": ["name", "type"]}},
             "stage": {"type": "STRING", "enum": ["not_stated", *B.STAGES]},
             "stage_evidence": {"type": "STRING"},
+            "event_type": {"type": "STRING", "enum": ["unclear", *B.EVENTS]},
+            "event_evidence": {"type": "STRING"},
+            "current_focus": {"type": "STRING"},
+            "focus_evidence": {"type": "STRING"},
             "blockers": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
                 "type": {"type": "STRING", "enum": list(B.BLOCKERS)}, "detail": {"type": "STRING"},
                 "evidence": {"type": "STRING"}}, "required": ["type", "detail", "evidence"]}},
@@ -56,6 +60,7 @@ _SCHEMA = {
         },
         "required": ["post_id", "is_build_activity", "exclusion_reason", "activity_type", "project_name",
                      "descriptive_title", "summary", "category", "technologies", "stage", "stage_evidence",
+                     "event_type", "event_evidence", "current_focus", "focus_evidence",
                      "blockers", "excerpt", "confidence"],
     },
 }
@@ -79,9 +84,17 @@ Rules - only use what the post says:
   post mentions. Do not add technologies the post doesn't mention.
 - stage: only if the post states it (e.g. "beta", "just launched", "prototype"); copy the words that say so
   into stage_evidence. Otherwise stage "not_stated" and stage_evidence "". Never assume a project is active.
-- blockers: problems the author reports while building (integration, deployment, API limits, tool
-  reliability, performance, testing/debugging, AI agent reliability, code review). evidence must be copied
-  word for word from the post. Leave the list empty if none are reported.
+- event_type: what kind of public update this post is: project_announcement (first sharing a project),
+  product_launch (it is now available/launched), feature_update (new features or a new version of an existing
+  project), public_demo (a demo or video), repository_update (code/release news), technical_question (asking
+  for help with something they build), reported_blocker (mainly reporting a problem they hit). Copy the words
+  that show it into event_evidence. If the post doesn't make it clear, use "unclear" and "".
+- current_focus: what the author says they are working on next or right now (max 12 words), with the words
+  copied into focus_evidence. "" and "" if the post doesn't say.
+- blockers: problems the author reports while building. type is one of: debugging, deployment,
+  authentication, api_integration, testing, documentation, ai_reliability, infrastructure_costs, performance,
+  data_management, developer_experience, code_review, other. evidence must be copied word for word from the
+  post. Leave the list empty if none are reported. Never invent a problem the post doesn't describe.
 - excerpt: one or two sentences copied word for word from the post that show what is being built.
 - confidence: 0 to 1, how sure you are that this is build activity.
 
@@ -273,6 +286,8 @@ def refresh(sb, trigger: str = "manual", budget_s: float = 200) -> dict:
         stats["ok"] = True
         try:                                    # projects, handles and links: no AI, never blocks the update
             BS.sync_projects(sb, stats, deadline=deadline)
+            BE.run_all(sb, deadline, stats)     # releases, event/focus backfill, blocker -> pain point links
+            BS.sync_projects(sb, {}, deadline=deadline)   # refresh projects whose observations changed
         except Exception as e:
             print(f"[build] project sync failed: {e!r}")
             stats["sync_error"] = repr(e)[:300]

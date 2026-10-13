@@ -18,7 +18,7 @@ OWNER = "admin"            # DevvIT's single owner (ADMIN_PASSWORD), as in share
 AUTHOR_BATCH = 40          # HN ids per Algolia lookup
 MAX_AUTHOR_LOOKUPS = 600   # per update
 _ITEM_COLS = ("discussion_id,source,origin,discussion_url,project_url,project_title,title_is_ai,title_raw,author,"
-              "project_id,posted_at,classified_at,summary,category,stage,stage_quote,focus,focus_quote,comments")
+              "project_id,posted_at,classified_at,enriched_at,summary,category,stage,stage_quote,focus,focus_quote,comments")
 V2_ITEM_FIELDS = ("author", "author_url", "event_type", "event_quote", "focus", "focus_quote", "enriched_at", "project_id")
 
 
@@ -89,15 +89,20 @@ def sync_projects(sb, stats: dict | None = None, deadline: float | None = None, 
         return stats
     items = _page_all(lambda: sb.table("build_items").select(_ITEM_COLS).eq("relevant", True).order("posted_at"))
     backfill_authors(sb, items, stats)
-    projects = _page_all(lambda: sb.table("build_projects").select("id,project_key"))
+    projects = _page_all(lambda: sb.table("build_projects").select("id,project_key,updated_at"))
     id_by_key = {p["project_key"]: p["id"] for p in projects}
+    updated_at = {p["project_key"]: p.get("updated_at") or "" for p in projects}
     groups: dict[str, list[dict]] = {}
     key_of_id = {v: k for k, v in id_by_key.items()}
     for it in items:
         key = key_of_id.get(it.get("project_id")) or P.project_key(it)
         groups.setdefault(key, []).append(it)
 
-    touched = {k for k, its in groups.items() if full or k not in id_by_key or any(not i.get("project_id") for i in its)}
+    # a project is refreshed when it's new, gained an observation, or one of its observations changed
+    # (event/focus enrichment, new release) after the project row was last derived
+    touched = {k for k, its in groups.items()
+               if full or k not in id_by_key or any(not i.get("project_id") for i in its)
+               or any(max(i.get("enriched_at") or "", i.get("classified_at") or "") > updated_at.get(k, "") for i in its)}
     new_keys = {k for k in touched if k not in id_by_key}
     new_rows = [{**P.derive_project(k, groups[k]), "updated_at": _now()} for k in sorted(new_keys)]
     for i in range(0, len(new_rows), 200):
