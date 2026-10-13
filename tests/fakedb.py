@@ -56,9 +56,13 @@ class _Query:
         self.op, self.payload = "insert", rows
         return self
 
-    def upsert(self, rows, **k):
+    def upsert(self, rows, on_conflict=None, ignore_duplicates=False, **k):
         self.op, self.payload = "upsert", rows
+        self._conflict, self._ignore = (on_conflict.split(",") if on_conflict else None), ignore_duplicates
         return self
+
+    def lt(self, k, v):
+        return self._f(lambda r: r.get(k) is not None and str(r.get(k)) < str(v))
 
     def update(self, changes):
         self.op, self.payload = "update", changes
@@ -75,13 +79,21 @@ class _Query:
         if self.op in ("insert", "upsert"):
             new = self.payload if isinstance(self.payload, list) else [self.payload]
             out = []
+            conflict = getattr(self, "_conflict", None) if self.op == "upsert" else None
             for r in new:
                 r = copy.deepcopy(r)
+                if conflict:   # like Postgres ON CONFLICT: update the existing row, or skip it with ignore_duplicates
+                    hit = next((x for x in rows if all(x.get(c) == r.get(c) for c in conflict)), None)
+                    if hit is not None:
+                        if not self._ignore:
+                            hit.update(r)
+                            out.append(copy.deepcopy(hit))
+                        continue
+                for col, val in self.db.defaults.get(self.table, {}).items():
+                    r.setdefault(col, val() if callable(val) else val)
                 if "id" not in r:
                     self.db.seq += 1
                     r["id"] = self.db.seq
-                for col, val in self.db.defaults.get(self.table, {}).items():
-                    r.setdefault(col, val() if callable(val) else val)
                 rows.append(r)
                 out.append(copy.deepcopy(r))
             return _Result(out)

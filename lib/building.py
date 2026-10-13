@@ -3,13 +3,12 @@
 - `validate` turns one Gemini classification into stored rows, checking every "explicit" claim against the
   post text: names, stages, quotes and technologies that don't appear in the post are dropped or labelled
   as AI inferences.
-- `summarise`, `trends`, `blocker_groups` and the pain point matchers compute every number on the page
-  from stored rows. Counts are of discussions, never of users or installs.
+- `top_counts` and `freshness` are small helpers; projects, trends and pain point links live in
+  lib.build_projects. Counts are of distinct projects and discussions, never of users or installs.
 """
 import re
 from datetime import date, datetime, timedelta, timezone
 
-from lib.evidence import tokens
 
 CATEGORIES = ["AI agents & LLM apps", "Developer tools", "Web apps", "Mobile apps", "Data & analytics",
               "Infrastructure & DevOps", "Security", "Open-source libraries", "Games & creative",
@@ -95,6 +94,7 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
         "title_raw": _clip(post.get("title"), 500) or "Untitled", "posted_at": post["created_at"],
         "score": int(post.get("score") or 0), "comments": int(post.get("comments") or 0),
         "in_posts": bool(post.get("in_posts")), "relevant": relevant,
+        "author": post.get("author") or None, "author_url": post.get("author_url") or None,
         "exclusion_reason": None if relevant else reason, "confidence": conf, "model": model,
         "classified_at": datetime.now(timezone.utc).isoformat(),
         # every row carries every column, so a bulk insert never sends NULL to a NOT NULL column
@@ -162,35 +162,6 @@ def _day(iso: str | None) -> date | None:
         return None
 
 
-# ---------- filtering ----------
-def apply_filters(items: list[dict], f: dict, today: date) -> list[dict]:
-    """Filter relevant items by period, category, technology, source, blocker kind and search words."""
-    days = f.get("days")
-    since = today - timedelta(days=days) if days else None
-    q = tokens(f.get("q"))
-    out = []
-    for it in items:
-        d = _day(it.get("posted_at"))
-        if since and (not d or d < since):
-            continue
-        if f.get("category") and it.get("category") != f["category"]:
-            continue
-        if f.get("source") and it.get("source") != f["source"]:
-            continue
-        if f.get("tech") and f["tech"] not in {t["key"] for t in it.get("techs", [])}:
-            continue
-        if f.get("blocker") and f["blocker"] not in {b["kind"] for b in it.get("blockers", [])}:
-            continue
-        if q:
-            hay = tokens(" ".join([it.get("project_title") or "", it.get("title_raw") or "", it.get("summary") or "",
-                                   it.get("category") or "", " ".join(t["name"] for t in it.get("techs", [])),
-                                   " ".join(b["detail"] for b in it.get("blockers", []))]))
-            if not q & hay:
-                continue
-        out.append(it)
-    return out
-
-
 # ---------- counts ----------
 def top_counts(items: list[dict], kind: str, n: int = 10) -> list[dict]:
     """Most common categories ('category') or explicitly mentioned technologies ('tech'), by discussions."""
@@ -207,132 +178,6 @@ def top_counts(items: list[dict], kind: str, n: int = 10) -> list[dict]:
     for c in counts.values():
         c["label"] = max(c.pop("names").items(), key=lambda x: x[1])[0]   # most common spelling
     return sorted(counts.values(), key=lambda c: (-c["n"], c["label"].lower()))[:n]
-
-
-def blocker_groups(items: list[dict]) -> list[dict]:
-    """Blockers grouped by kind. Only blockers quoted verbatim from a post are counted."""
-    groups: dict[str, dict] = {}
-    for it in items:
-        for b in it.get("blockers", []):
-            if not b["explicit"]:
-                continue
-            g = groups.setdefault(b["kind"], {"kind": b["kind"], "label": BLOCKERS.get(b["kind"], b["kind"]),
-                                              "n": 0, "examples": []})
-            g["n"] += 1
-            g["examples"].append({**b, "item": it})
-    return sorted(groups.values(), key=lambda g: -g["n"])
-
-
-def trends(items: list[dict], today: date, kind: str, weeks: int = 4, min_total: int = 3) -> dict:
-    """Week-by-week discussion counts for technologies or categories over complete weeks.
-
-    Status compares the latest complete week with the average of the earlier ones:
-      new       - seen 2+ times in the latest week and never in earlier weeks (needs earlier weeks with data)
-      growing   - latest >= 1.5x the earlier average and at least 2 more discussions
-      declining - earlier average >= 2 and latest <= half of it
-      stable    - everything else with enough discussions
-    Rules of thumb on discussion counts, not statistical tests and not adoption."""
-    wk = complete_weeks(today, weeks)
-    idx = {w: i for i, w in enumerate(wk)}
-    totals = [0] * len(wk)
-    series: dict[str, dict] = {}
-    for it in items:
-        d = _day(it.get("posted_at"))
-        w = week_start(d) if d else None
-        if w not in idx:
-            continue
-        i = idx[w]
-        totals[i] += 1
-        if kind == "category":
-            keys = {(it.get("category") or "Other", it.get("category") or "Other")}
-        else:
-            keys = {(t["key"], t["name"]) for t in it.get("techs", []) if t["explicit"]}
-        for k, label in keys:
-            s = series.setdefault(k, {"key": k, "label": label, "counts": [0] * len(wk)})
-            s["counts"][i] += 1
-    earlier_with_data = sum(1 for t in totals[:-1] if t)
-    rows = []
-    for s in series.values():
-        c = s["counts"]
-        last, before = c[-1], c[:-1]
-        avg = sum(before) / len(before) if before else 0
-        if sum(c) < min_total and not (last >= 2 and not any(before)):
-            continue
-        if not totals[-1] or earlier_with_data == 0:
-            status = "pending"
-        elif last >= 2 and not any(before):
-            status = "new"
-        elif last >= 1.5 * avg and last - avg >= 2:
-            status = "growing"
-        elif avg >= 2 and last <= avg / 2:
-            status = "declining"
-        else:
-            status = "stable"
-        rows.append({**s, "status": status, "last": last, "avg": avg, "total": sum(c)})
-    order = {"new": 0, "growing": 1, "declining": 2, "stable": 3, "pending": 4}
-    rows.sort(key=lambda r: (order[r["status"]], -r["last"], -r["total"]))
-    return {"weeks": [w.isoformat() for w in wk], "totals": totals, "rows": rows,
-            "history_ok": bool(totals[-1]) and earlier_with_data > 0}
-
-
-def theme_keys(trend: dict, which: str) -> set[str]:
-    """Keys that are emerging (new or growing in the latest complete week) or recurring (seen in 2+ earlier weeks)."""
-    if which == "emerging":
-        return {r["key"] for r in trend["rows"] if r["status"] in {"new", "growing"}}
-    if which == "recurring":
-        return {r["key"] for r in trend["rows"] if sum(1 for x in r["counts"][:-1] if x) >= 2}
-    return set()
-
-
-# ---------- connections to pain points ----------
-def _stems(text: str) -> set[str]:
-    return {t[:-1] if len(t) > 4 and t.endswith("s") else t for t in tokens(text)}
-
-
-def overlap(a: str, b: str) -> list[str]:
-    return sorted(_stems(a) & _stems(b))
-
-
-def match_pain_point(blocker: dict, labels: list[str]) -> tuple[str, list[str]] | None:
-    """The pain point label sharing the most words (at least 2) with a blocker. A suggestion, shown as such."""
-    best = None
-    for label in labels:
-        shared = overlap(f"{blocker['detail']} {blocker.get('quote') or ''}", label)
-        if len(shared) >= 2 and (best is None or len(shared) > len(best[1])):
-            best = (label, shared)
-    return best
-
-
-def builds_for_pain_point(label: str, items: list[dict]) -> list[dict]:
-    """Build discussions related to one pain point, each with the reason:
-    'same thread' (the discussion itself is tagged with this pain point), a blocker sharing 2+ words
-    with the label, or an explicitly mentioned technology whose name is in the label."""
-    out = []
-    lab_norm = _norm(label)
-    for it in items:
-        if it.get("pain_point") == label:
-            out.append({"item": it, "basis": "Same thread is tagged with this pain point", "suggested": False})
-            continue
-        hit = next(((b, s) for b in it.get("blockers", []) if b["explicit"]
-                    for s in [overlap(f"{b['detail']} {b.get('quote') or ''}", label)] if len(s) >= 2), None)
-        if hit:
-            out.append({"item": it, "suggested": True,
-                        "basis": f"Reported blocker shares the words: {', '.join(hit[1])}"})
-            continue
-        tech = next((t for t in it.get("techs", []) if t["explicit"] and len(t["key"]) >= 3
-                     and mentioned(t["name"], lab_norm)), None)
-        if tech:
-            out.append({"item": it, "suggested": True, "basis": f"Mentions {tech['name']}, which is named in this pain point"})
-    return out
-
-
-def pain_points_for_tech(name: str, threads: list[dict], n: int = 6) -> list[dict]:
-    """Pain points whose threads mention a technology by name, with the number of threads that do."""
-    counts: dict[str, list[dict]] = {}
-    for t in threads:
-        if t.get("pain_point") and mentioned(name, f"{t.get('title') or ''} {t.get('body') or ''}"):
-            counts.setdefault(t["pain_point"], []).append(t)
-    return sorted(({"pain_point": k, "threads": v} for k, v in counts.items()), key=lambda r: -len(r["threads"]))[:n]
 
 
 # ---------- freshness ----------

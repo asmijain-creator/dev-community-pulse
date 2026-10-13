@@ -19,7 +19,7 @@ import httpx
 from google import genai
 from google.genai import types
 
-from lib import building as B
+from lib import build_config as BC, build_sync as BS, building as B
 from lib.collectors import HN_URL, HTTP_TIMEOUT, _strip_html
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
@@ -28,7 +28,7 @@ WEEKS_BACK = 4          # complete weeks kept filled, plus the current week
 MAX_FROM_POSTS = 40     # existing DevvIT threads classified per update
 BATCH = 8
 CONCURRENCY = 4
-LOAD_DAYS = 100
+LOAD_DAYS = BC.LOAD_DAYS
 
 _SCHEMA = {
     "type": "ARRAY",
@@ -108,7 +108,9 @@ async def _show_hn_week(client: httpx.AsyncClient, start: datetime, end: datetim
         if not pid or not h.get("created_at_i"):
             continue
         hn = f"https://news.ycombinator.com/item?id={pid}"
+        author = h.get("author") or None
         out.append({"id": f"hn:{pid}", "source": "hn", "origin": "show_hn", "title": h.get("title") or "",
+                    "author": author, "author_url": f"https://news.ycombinator.com/user?id={author}" if author else None,
                     "body": _strip_html(h.get("story_text")), "discussion_url": hn,
                     "project_url": h.get("url") if (h.get("url") or "").startswith(("https://", "http://")) else None,
                     "score": h.get("points") or 0, "comments": h.get("num_comments") or 0,
@@ -246,8 +248,11 @@ def refresh(sb, trigger: str = "manual", budget_s: float = 200) -> dict:
         batches = [todo[i:i + BATCH] for i in range(0, len(todo), BATCH)]
         pairs = asyncio.run(_classify(batches, deadline, stats)) if batches else []
         items, techs, blockers = [], [], []
+        v2 = BS.enabled(sb)                     # migration 005 adds author/event/focus columns
         for c, post in pairs:
             it, ts, bs = B.validate(c, post, MODEL)
+            if not v2:
+                it = {k: v for k, v in it.items() if k not in BS.V2_ITEM_FIELDS}
             items.append(it)
             techs += ts
             blockers += bs
@@ -266,6 +271,11 @@ def refresh(sb, trigger: str = "manual", budget_s: float = 200) -> dict:
         stats.update(classified=len(items), relevant=sum(1 for i in items if i["relevant"]),
                      pending=len(todo) - len(items))
         stats["ok"] = True
+        try:                                    # projects, handles and links: no AI, never blocks the update
+            BS.sync_projects(sb, stats, deadline=deadline)
+        except Exception as e:
+            print(f"[build] project sync failed: {e!r}")
+            stats["sync_error"] = repr(e)[:300]
     except Exception as e:
         print(f"[build] refresh failed: {e!r}")
         stats.update(ok=False, error=repr(e)[:300])
@@ -290,7 +300,7 @@ def load(sb, days: int = LOAD_DAYS) -> dict:
     for i in range(0, len(ids), 150):
         chunk = ids[i:i + 150]
         techs += sb.table("build_technologies").select("discussion_id,name,key,kind,explicit").in_("discussion_id", chunk).execute().data or []
-        blocks += sb.table("build_blockers").select("discussion_id,kind,detail,quote,explicit").in_("discussion_id", chunk).execute().data or []
+        blocks += sb.table("build_blockers").select("*").in_("discussion_id", chunk).execute().data or []
         linked = [r["discussion_id"] for r in rel[i:i + 150] if r.get("in_posts")]
         if linked:
             pps.update({p["id"]: p["pain_point"] for p in sb.table("posts").select("id,pain_point").in_("id", linked)

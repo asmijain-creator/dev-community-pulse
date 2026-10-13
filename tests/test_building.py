@@ -89,67 +89,14 @@ def test_complete_weeks_exclude_current_partial_week():
     assert all(w.weekday() == 4 for w in weeks)
 
 
-def test_filters():
-    items = [item(1, "2026-10-12", techs=["Rust"]), item(2, "2026-09-01", cat="Web apps"),
-             item(3, "2026-10-10", source="github", blockers=[("deployment", "deploy fails")])]
-    assert [i["discussion_id"] for i in B.apply_filters(items, {"days": 7}, TODAY)] == ["hn:1", "hn:3"]
-    assert [i["discussion_id"] for i in B.apply_filters(items, {"tech": "rust"}, TODAY)] == ["hn:1"]
-    assert [i["discussion_id"] for i in B.apply_filters(items, {"blocker": "deployment", "source": "github"}, TODAY)] == ["hn:3"]
-    assert [i["discussion_id"] for i in B.apply_filters(items, {"q": "deploy"}, TODAY)] == ["hn:3"]
-
-
 def test_counts_use_only_explicit_technologies():
     it = item(1, "2026-10-12", techs=["Rust"])
     it["techs"].append({"name": "Redis", "key": "redis", "explicit": False})
     assert [c["label"] for c in B.top_counts([it], "tech")] == ["Rust"]
 
 
-def _week(n, i0, day, techs):
-    return [item(i0 + k, day, techs=techs) for k in range(n)]
-
-
-def test_trends_growing_new_declining_over_complete_weeks():
-    days = ["2026-09-12", "2026-09-19", "2026-09-26", "2026-10-03"]          # one day inside each complete week
-    items = []
-    for i, d in enumerate(days):
-        items += _week(1, 100 * i, d, ["Rust"])                               # Rust: 1,1,1,then grows below
-        items += _week(4 if i < 3 else 1, 100 * i + 10, d, ["Django"])        # Django: 4,4,4,1 -> declining
-    items += _week(4, 900, days[-1], ["Rust"])                                # Rust latest week: 5
-    items += _week(3, 950, days[-1], ["Bun"])                                 # Bun: only latest week -> new
-    items += _week(5, 980, "2026-10-12", ["Zig"])                             # current partial week: ignored
-    t = B.trends(items, TODAY, "tech")
-    status = {r["label"]: r["status"] for r in t["rows"]}
-    assert status == {"Rust": "growing", "Django": "declining", "Bun": "new"}
-    assert t["history_ok"] and "Zig" not in status
-
-
-def test_trends_need_history():
-    t = B.trends(_week(3, 1, "2026-10-03", ["Rust"]), TODAY, "tech")
-    assert not t["history_ok"] and t["rows"][0]["status"] == "pending"
-
-
-# ---------- connections to pain points ----------
-def test_blocker_matches_pain_point_with_two_shared_words():
-    b = {"detail": "flaky tests in GitHub Actions", "quote": None}
-    assert B.match_pain_point(b, ["flaky ci tests in github actions", "slow docker builds"])[0] == "flaky ci tests in github actions"
-    assert B.match_pain_point({"detail": "docker", "quote": None}, ["slow docker builds"]) is None
-
-
-def test_builds_for_pain_point_reasons():
-    same = item(1, "2026-10-12", pain_point="slow docker builds")
-    by_blocker = item(2, "2026-10-12", blockers=[("performance", "docker builds are slow")])
-    by_tech = item(3, "2026-10-12", techs=["Docker"])
-    unrelated = item(4, "2026-10-12", techs=["Rust"])
-    rows = B.builds_for_pain_point("slow docker builds", [same, by_blocker, by_tech, unrelated])
-    assert [(r["item"]["discussion_id"], r["suggested"]) for r in rows] == [("hn:1", False), ("hn:2", True), ("hn:3", True)]
-
-
-def test_pain_points_for_tech_counts_threads_mentioning_it():
-    threads = [{"title": "Supabase auth breaks", "body": "", "pain_point": "auth issues"},
-               {"title": "x", "body": "using supabase edge", "pain_point": "auth issues"},
-               {"title": "unrelated", "body": "", "pain_point": "other"}]
-    rows = B.pain_points_for_tech("Supabase", threads)
-    assert rows[0]["pain_point"] == "auth issues" and len(rows[0]["threads"]) == 2 and len(rows) == 1
+# Keyword-overlap matching and the old weekly trend radar were replaced by evidence-based links and the
+# Trending Stack (equal periods, distinct projects): see tests/test_building_projects.py.
 
 
 # ---------- routes ----------
@@ -208,8 +155,8 @@ def test_building_page_renders_real_rows_and_filters(app, monkeypatch):
     monkeypatch.setattr(w.BLD, "complete_weeks", lambda today, n=4: real(TODAY, n))
     r = c.get("/building?days=0")
     assert r.status_code == 200
-    assert "Project 1" in r.text and "Project 2" in r.text and "AI-generated title" in r.text
-    assert "https://x/1" in r.text and "Deployment failures" in r.text
+    assert "Project 1" in r.text and "Project 2" in r.text and "AI title" in r.text
+    assert "https://x/1" in r.text and "deploys fail on Fly" in r.text and "Deployment" in r.text
     r = c.get("/building?days=0&tech=rust&category=Bogus")
     assert "Project 1" in r.text and "Project 2" not in r.text
 

@@ -698,6 +698,64 @@ BASE_CSS = """
             border-top: 1px solid var(--border-soft); }
   .b-foot .mono { font-size: 11px; color: var(--text-3); }
   .b-links { margin-left: auto; font-size: var(--fs-sm); } .b-links a { color: var(--link); }
+  /* Building Now: projects table, metrics, challenges, project detail */
+  .rstatus { font-size: 11px; color: var(--text-3); margin: 10px 0 0; } .rstatus a { color: var(--link); }
+  .kpi .how { margin-top: 8px; font-size: 11px; } .kpi .how summary { cursor: pointer; color: var(--text-3); }
+  .kpi .how p { margin: 6px 0 0; line-height: 1.5; color: var(--text-2); white-space: normal; }
+  .kpi.dark .how summary, .kpi.dark .how p { color: color-mix(in srgb, var(--bg) 75%, var(--ink)); }
+  .bfilters input[type=date] { width: auto; }
+  .field.chk span:last-child { display: flex; gap: 6px; align-items: center; padding: 8px 0; color: var(--text-2); }
+  .secnav { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: var(--s5); font-size: var(--fs-sm); }
+  .secnav a { color: var(--text-2); border-bottom: 1px solid var(--border); } .secnav a:hover { color: var(--text); }
+  .ptab { min-width: 1500px; } .ptab td, .ptab th[scope=row] { vertical-align: top; padding: 10px 12px; }
+  .ptab thead th { padding: 8px 12px; }
+  .ptab th.pname { position: sticky; left: 0; background: var(--surface); font-size: var(--fs-sm); font-weight: 600; color: var(--text);
+                   min-width: 180px; max-width: 220px; white-space: normal; z-index: 1; }
+  .ptab tbody tr:hover th.pname { background: var(--hover); }
+  .ptab th.pname a:hover { text-decoration: underline; }
+  .ptab .pdesc { min-width: 240px; max-width: 300px; color: var(--text-2); line-height: 1.45; }
+  .ptab .ptech { min-width: 170px; } .ptab .pfocus { min-width: 180px; max-width: 240px; color: var(--text-2); line-height: 1.45; }
+  .ptab .pfocus small { display: block; color: var(--text-4); font-size: 11px; margin-top: 2px; }
+  .ptab .acts { white-space: nowrap; } .ptab .acts > * { margin-right: 8px; }
+  .ptab td a.schip:hover, a.tchip:hover { text-decoration: underline; }
+  .lnk { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-sm); color: var(--link); cursor: pointer; }
+  .lnk:hover { text-decoration: underline; }
+  .pstat { display: inline-block; margin-top: 6px; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .pstat.new::before, .pstat.recent::before, .pstat.quiet::before, .pstat.unknown::before { content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; background: var(--text-4); }
+  .pstat.new::before { background: var(--accent); } .pstat.recent::before { background: var(--green); }
+  .flag { margin-left: 6px; color: var(--warn-text); }
+  .tpager { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 12px; }
+  .tpager .mono { font-size: 12px; color: var(--text-3); }
+  .empty-state { text-align: center; padding: 28px; }
+  .blks { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
+  .blk { border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; font-size: var(--fs-sm); }
+  .blk-h { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .blk-h b { font-weight: 600; margin-right: auto; }
+  .blk-m, .blk-l { font-size: 12px; color: var(--text-3); } .blk-m a, .blk-l a { color: var(--link); }
+  .why { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .bgroup.inf summary b { color: var(--text-3); }
+  .crumbs a { color: var(--link); }
+  .pactions { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; margin-top: var(--s5); }
+  .wform { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  .wform textarea, .flagbox textarea { font: inherit; font-size: var(--fs-sm); padding: 8px 10px; border: 1px solid var(--border);
+                                       border-radius: 8px; background: var(--bg); color: var(--text); }
+  .flagbox summary { list-style: none; } .flagbox summary::-webkit-details-marker { display: none; }
+  .flagbox form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-width: 360px; }
+  .qtab.ov th { text-align: left; font-weight: 500; color: var(--text-3); width: 200px; padding: 9px 8px; vertical-align: top;
+                border-bottom: 1px solid var(--border-soft); white-space: normal; font-size: var(--fs-sm); }
+  .qtab.ov td { line-height: 1.5; }
+  .tl { list-style: none; padding: 0; margin: 12px 0 0; border-left: 2px solid var(--border); }
+  .tl-i { position: relative; padding: 0 0 18px 18px; display: grid; gap: 6px; }
+  .tl-i::before { content: ""; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px; border-radius: 50%;
+                  background: var(--surface); border: 2px solid var(--bar); }
+  .tl-h { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .tl-h .mono { font-size: 11px; color: var(--text-3); }
+  .tl-t { font-weight: 600; font-size: var(--fs-md); } .tl-l { font-size: 12px; color: var(--text-3); } .tl-l a { color: var(--link); }
+  ul.rel li { margin: 6px 0; }
+  @media (max-width: 680px) {
+    .ptab th.pname { min-width: 140px; }
+    .qtab.ov th { width: 110px; }
+    .pactions .btn, .wform { width: 100%; } .wform .field { min-width: 0; width: 100%; }
+  }
   .note-box.err { background: color-mix(in srgb, var(--red) 10%, var(--surface)); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
   @media (max-width: 1000px) { .bcards, .row2.even { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 680px) { .bfilters select { max-width: none; width: 100%; } .bfilters .field { flex: 1 1 140px; }

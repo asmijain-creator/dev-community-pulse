@@ -28,6 +28,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from lib import devi
 from lib import share_snapshot as SS, sharing as SH, views_share as VS
 from lib import build_pipeline as BP, building as BLD, views_build as VB
+from lib import build_config as BC, build_projects as BPJ, build_sync as BS
 from lib import opportunity_ai, radar, scoring
 from lib import views_intel as VI
 from lib import workspace as W
@@ -742,12 +743,27 @@ def shared_report(request: Request, token: str):
 
 
 # ---------- Building Now ----------
+def _is_admin(req: Request) -> bool:
+    """True when the request already carries the admin password (never prompts). Used to show private
+    watchlist state and review controls; every write route still calls _check_admin."""
+    pw = os.getenv("ADMIN_PASSWORD")
+    header = req.headers.get("authorization", "")
+    if not pw or not header.startswith("Basic "):
+        return False
+    try:
+        got = base64.b64decode(header[6:]).decode().split(":", 1)[1]
+    except Exception:
+        return False
+    return secrets.compare_digest(got, pw)
+
+
 def _builds_for(sb, name: str) -> list[dict] | None:
-    """Build discussions connected to one pain point, or None when Building Now isn't set up (panel hidden)."""
+    """Build discussions connected to one pain point by evidence (same thread, or a stored blocker link),
+    or None when Building Now isn't set up (panel hidden)."""
     if not W.ready(sb, "build_items"):
         return None
     try:
-        return BLD.builds_for_pain_point(name, BP.load(sb)["items"])
+        return BPJ.builds_for_pain_point(name, BP.load(sb)["items"])
     except Exception as e:
         print(f"[building] related builds failed: {e!r}")
         return None
@@ -755,42 +771,53 @@ def _builds_for(sb, name: str) -> list[dict] | None:
 
 def _build_filters(q) -> dict:
     try:
-        days = int(q.get("days", 30))
+        days = int(q.get("days", BC.DEFAULT_PERIOD))
     except ValueError:
-        days = 30
-    f = {"days": days if days in (7, 30, 90, 0) else 30}
+        days = BC.DEFAULT_PERIOD
+    f = {"days": days if days in {d for d, _ in BC.PERIODS} else BC.DEFAULT_PERIOD}
     for k, allowed in (("category", set(BLD.CATEGORIES)), ("source", {"hn", "stackoverflow", "github"}),
-                       ("blocker", set(BLD.BLOCKERS)), ("theme", {"emerging", "recurring"})):
+                       ("stage", set(BC.STAGES)), ("fresh", set(BPJ.FRESHNESS)), ("blockers", {"yes", "no"}),
+                       ("sort", set(BPJ.SORTS)), ("group", set(BC.TECH_GROUPS))):
         f[k] = q.get(k) if q.get(k) in allowed else ""
     f["tech"] = BLD.tech_key(q.get("tech") or "")
     f["q"] = " ".join((q.get("q") or "").split())[:100]
+    for k in ("seen_from", "seen_to"):
+        v = (q.get(k) or "")[:10]
+        try:
+            f[k] = datetime.strptime(v, "%Y-%m-%d").date().isoformat() if v else ""
+        except ValueError:
+            f[k] = ""
+    f["watch"] = "1" if q.get("watch") == "1" else ""
+    try:
+        f["page"] = max(1, min(int(q.get("page", 1)), 10_000))
+    except ValueError:
+        f["page"] = 1
     return f
 
 
-def _related_pain_points(sb, f: dict, items: list[dict], tech_label: str, labels: list[str], weeks: list[str]) -> dict | None:
-    """Pain points connected to the selected technology or category, only where stored records support it."""
-    if f["tech"] and weeks:
-        threads = sb.table("posts").select("title,body,pain_point").in_("week_start", weeks) \
-            .not_.is_("pain_point", "null").limit(1000).execute().data or []
-        rows = BLD.pain_points_for_tech(tech_label, threads)
-        for r in rows:
-            r["basis"] = f"mention {tech_label} by name"
-        return {"name": tech_label, "rows": rows,
-                "how": f"Pain points from the last {len(weeks)} weekly briefs whose threads mention {tech_label} by name (text match, not AI)."}
-    if f["category"]:
-        found: dict[str, list] = {}
-        for it in items:
-            if it.get("category") != f["category"]:
-                continue
-            for b in it["blockers"]:
-                m = BLD.match_pain_point(b, labels) if b["explicit"] else None
-                if m:
-                    found.setdefault(m[0], []).append(it)
-        rows = [{"pain_point": k, "threads": v, "basis": "in this category report a blocker sharing 2+ words with it (suggested)"}
-                for k, v in sorted(found.items(), key=lambda x: -len(x[1]))][:6]
-        return {"name": f["category"], "rows": rows,
-                "how": "Suggested connections: build discussions in this category whose quoted blocker shares at least two words with a pain point."}
-    return None
+def _related_pain_points(f: dict, projects: list[dict]) -> dict | None:
+    """Pain points connected to the selected technology or category through stored blocker links only."""
+    if not (f["tech"] or f["category"]):
+        return None
+    name = f["category"] or next((t["name"] for p in projects for t in p["techs"] if t["key"] == f["tech"]), f["tech"])
+    found: dict[str, list] = {}
+    for p in projects:
+        for b in p["blockers"]:
+            if b.get("pain_point") and b.get("link_status") != "rejected":
+                found.setdefault(b["pain_point"], []).append(p)
+    rows = [{"pain_point": k, "threads": v, "basis": "from projects whose quoted blockers are linked to it"}
+            for k, v in sorted(found.items(), key=lambda x: -len(x[1]))][:6]
+    return {"name": name, "rows": rows,
+            "how": "Pain points linked to blockers reported by the projects in this selection (same thread, or matched by "
+                   "Gemini with a stated reason). Shared keywords alone are never used."}
+
+
+def _load_projects(sb, now: datetime, admin_ok: bool) -> tuple[dict, list[dict], bool]:
+    d = BP.load(sb)
+    v2 = BS.enabled(sb)
+    stored = BS.load_projects(sb) if v2 else []
+    watched = BS.watched_ids(sb) if (v2 and admin_ok) else set()
+    return d, BPJ.assemble(stored, d["items"], now, watched), v2
 
 
 @app.get("/building", response_class=HTMLResponse)
@@ -801,32 +828,123 @@ def building(request: Request):
     sb = db()
     f = _build_filters(request.query_params)
     hist = _history(sb)
+    admin_ok = _is_admin(request)
+    if f["watch"] and not admin_ok:
+        _check_admin(request)            # the watchlist view is private: ask for the admin password
     if not W.ready(sb, "build_items"):
         return VB.building_page(None, f, hist, state="migrate")
     try:
-        d = BP.load(sb)
         now = datetime.now(timezone.utc)
-        today = now.date()
-        items = d["items"]
-        tt, tc = BLD.trends(items, today, "tech"), BLD.trends(items, today, "category")
-        shown = BLD.apply_filters(items, f, today)
-        if f["theme"]:
-            keys = BLD.theme_keys(tt, f["theme"]) | BLD.theme_keys(tc, f["theme"])
-            shown = [it for it in shown if it.get("category") in keys
-                     or any(t["explicit"] and t["key"] in keys for t in it["techs"])]
-        tech_options = BLD.top_counts(BLD.apply_filters(items, {"days": f["days"]}, today), "tech", 40)
-        tech_label = next((t["name"] for it in items for t in it["techs"] if t["key"] == f["tech"]), f["tech"])
-        _, weeks, metrics, _ = _recent(sb)
-        labels = sorted({m["pain_point"] for m in metrics})
-        d.update(f=f, shown=shown, recent=sorted(shown, key=lambda it: it.get("posted_at") or "", reverse=True)[:24],
-                 cats=BLD.top_counts(shown, "category"), techs=BLD.top_counts(shown, "tech", 12),
-                 trend_tech=tt, trend_cat=tc, blockers=BLD.blocker_groups(shown), labels=labels,
-                 tech_options=tech_options, related=_related_pain_points(sb, f, items, tech_label, labels, weeks),
-                 fresh=BLD.freshness(items, d["refreshes"], now), flash=_build_message(request.query_params))
+        d, projects, v2 = _load_projects(sb, now, admin_ok)
+        stack = BPJ.stack(projects, now.date(), f["days"], f["group"])
+        shown = BPJ.sort_projects(BPJ.filter_projects(projects, f, now), f["sort"])
+        page_rows, page, pages = BPJ.paginate(shown, f["page"])
+        in_range = BPJ.filter_projects(projects, {"days": f["days"]}, now)
+        tech_options = BLD.top_counts([{"techs": p["techs"]} for p in in_range], "tech", 40)
+        d.update(v2=v2, shown=shown, total=len(shown), page_rows=page_rows, page=page, pages=pages, stack=stack,
+                 metrics=BPJ.metrics(shown, f, now, stack), challenges=BPJ.challenges(shown, f["days"], now),
+                 tech_options=tech_options, related=_related_pain_points(f, shown),
+                 fresh=BLD.freshness(d["items"], d["refreshes"], now), flash=_build_message(request.query_params))
+        f["page"] = page
     except Exception as e:
         print(f"[building] failed: {e!r}")
         return VB.building_page(None, f, hist, state="error")
-    return VB.building_page(d, f, hist)
+    return VB.building_page(d, f, hist, admin_ok=admin_ok)
+
+
+def _project_related(sb, p: dict) -> list[dict]:
+    """Existing pain points connected to this project by its own evidence."""
+    rel: dict[str, dict] = {}
+    ids = [i["discussion_id"] for i in p["items"] if i.get("in_posts")]
+    if ids:
+        for row in sb.table("posts").select("id,pain_point").in_("id", ids).execute().data or []:
+            if row.get("pain_point"):
+                rel.setdefault(row["pain_point"], {"pain_point": row["pain_point"], "tag": '<span class="cov ok">Same thread</span>',
+                                                   "basis": "One of this project's own discussions is tagged with this pain point."})
+    for b in p["blockers"]:
+        if b.get("pain_point") and b.get("link_status") != "rejected" and b["pain_point"] not in rel:
+            tag = ('<span class="cov ok">Confirmed</span>' if b.get("link_status") == "confirmed" or b.get("link_method") == "same_thread"
+                   else '<span class="ai-tag">AI-suggested link</span>')
+            rel[b["pain_point"]] = {"pain_point": b["pain_point"], "tag": tag,
+                                    "basis": f'Reported blocker “{b["detail"]}”: {b.get("link_basis") or "same thread"}'}
+    return list(rel.values())
+
+
+@app.get("/building/project", response_class=HTMLResponse)
+def building_project(request: Request, id: str = "", key: str = ""):
+    ok, missing = _env_check()
+    if not ok:
+        return HTMLResponse(V.not_configured(missing))
+    if not (id or key) or len(id) > 64 or len(key) > 300:
+        raise HTTPException(404, "Project not found")
+    sb = db()
+    if not W.ready(sb, "build_items"):
+        return RedirectResponse("/building", status_code=303)
+    admin_ok = _is_admin(request)
+    try:
+        row, items = BS.load_project(sb, project_id=id or None, key=key or None)
+    except Exception as e:
+        print(f"[building] project load failed: {e!r}")
+        raise HTTPException(404, "Project not found")
+    items = [i for i in items if i.get("relevant")]
+    if not items:
+        raise HTTPException(404, "Project not found")
+    ids = [i["discussion_id"] for i in items]
+    techs, blocks = [], []
+    for k in range(0, len(ids), 150):
+        chunk = ids[k:k + 150]
+        techs += sb.table("build_technologies").select("*").in_("discussion_id", chunk).execute().data or []
+        blocks += sb.table("build_blockers").select("*").in_("discussion_id", chunk).execute().data or []
+    for i in items:
+        i["techs"] = [t for t in techs if t["discussion_id"] == i["discussion_id"]]
+        i["blockers"] = [b for b in blocks if b["discussion_id"] == i["discussion_id"]]
+    now = datetime.now(timezone.utc)
+    v2 = BS.enabled(sb)
+    watched = BS.watched_ids(sb) if (v2 and admin_ok) else set()
+    proj = BPJ.assemble([row] if row else [], items, now, watched)[0]
+    watch = BS.watch_entry(sb, proj["id"]) if (proj.get("id") and v2 and admin_ok) else None
+    flash = {"saved": "Saved to the watchlist.", "removed": "Removed from the watchlist.", "flagged": "Flagged for review.",
+             "cleared": "Review flag cleared."}.get(request.query_params.get("done", ""))
+    return HTMLResponse(VB.project_page(proj, _history(sb), admin_ok=admin_ok, watch=watch, v2=v2,
+                                        related=_project_related(sb, proj), flash=flash))
+
+
+def _safe_back(back: str, fallback: str) -> str:
+    """Only redirect back to Building Now pages on this site."""
+    return back if back.startswith("/building") and "//" not in back and "\\" not in back else fallback
+
+
+@app.post("/building/watch")
+def building_watch(request: Request, project_id: str = Form(...), on: int = Form(1), note: str | None = Form(None),
+                   back: str = Form("/building")):
+    _check_admin(request)
+    sb = db()
+    if not BS.enabled(sb) or not BS.load_project(sb, project_id=project_id)[0]:
+        raise HTTPException(404, "Project not found")
+    BS.set_watch(sb, project_id, bool(on), note)
+    dest = _safe_back(back, f"/building/project?id={quote(project_id)}")
+    if dest.startswith("/building/project"):
+        dest += ("&" if "?" in dest else "?") + f"done={'saved' if on else 'removed'}"
+    return RedirectResponse(dest, status_code=303)
+
+
+@app.post("/building/flag")
+def building_flag(request: Request, project_id: str = Form(...), flagged: int = Form(1), note: str = Form("")):
+    _check_admin(request)
+    sb = db()
+    if not BS.enabled(sb) or not BS.load_project(sb, project_id=project_id)[0]:
+        raise HTTPException(404, "Project not found")
+    BS.set_review(sb, project_id, bool(flagged), note)
+    return RedirectResponse(f"/building/project?id={quote(project_id)}&done={'flagged' if flagged else 'cleared'}", status_code=303)
+
+
+@app.post("/building/link")
+def building_link(request: Request, blocker_id: int = Form(...), status: str = Form(...), back: str = Form("/building")):
+    _check_admin(request)
+    if status not in ("confirmed", "rejected"):
+        raise HTTPException(400, "Unknown status")
+    BS.set_link_status(db(), blocker_id, status)
+    return RedirectResponse(_safe_back(back, "/building"), status_code=303)
 
 
 def _build_message(q) -> str | None:
@@ -834,7 +952,7 @@ def _build_message(q) -> str | None:
     if s == "busy":
         return "An update is already running. Refresh this page in a minute."
     if s == "failed":
-        return "The update failed. Details are under Data freshness and coverage."
+        return "The update failed. Previously collected data is still shown; details are under Data freshness and coverage."
     if s and s.isdigit():
         return f"Updated: {s} new build discussion{'s' if s != '1' else ''} found."
     return None
