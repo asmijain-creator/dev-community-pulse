@@ -1831,7 +1831,7 @@ RECENT_JS = """<script>
 def error_page(status: int, detail: str | None) -> str:
     """Friendly HTML for errors on browser pages (API routes keep their JSON errors)."""
     known = {
-        401: ("Sign in required", "This page needs the DevvIT admin password. Reload the page to enter it."),
+        401: ("Not authorised", "This request isn't allowed."),
         404: ("Page not found", "That page doesn't exist, or the brief you're looking for hasn't been generated."),
     }
     heading, text = known.get(status, ("Something went wrong", "DevvIT couldn't load this page. Please try again in a moment."))

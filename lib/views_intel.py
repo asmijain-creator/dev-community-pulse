@@ -72,7 +72,7 @@ def radar_page(res: dict, categories: dict, history: list[dict], saving: bool, f
             actions = ('<div class="r-actions">'
                        + (btn("new", "Restore") if f["status"] == "dismissed" else
                           btn("relevant", "Mark relevant") + btn("monitored", "Add to monitored topics") + btn("dismissed", "Dismiss"))
-                       + '<span class="sub">Needs the admin password</span></div>')
+                       + '</div>')
         cards += f"""
 <article class="rcard">
   <div class="r-top"><span class="chg {kcls}">{kind}</span>{status}
@@ -214,7 +214,7 @@ def opportunity_page(name: str, category: str, latest: str, weeks: list[str], se
   <label class="field"><span>Status</span><select name="status">{options}</select></label>
   <label class="field" style="flex:1"><span>Private notes</span><textarea name="notes" rows="3" placeholder="What you've learned, who to talk to…">{escape((status_row or {}).get("notes", ""))}</textarea></label>
   <button class="btn btn-primary" type="submit">{"Save" if status_row else "Save to opportunities"}</button>
-</form><p class="sub">Saving needs the admin password. Notes are private and not shown on public pages.</p>
+</form><p class="sub">Notes are not included in shared reports.</p>
 {f"<ul class='log'>{log_html}</ul>" if log_html else ""}""" if saving else MIGRATION_NOTE)
 
     if insight:
@@ -237,7 +237,7 @@ def opportunity_page(name: str, category: str, latest: str, weeks: list[str], se
         ai = '<p class="sub">No analysis yet. It reads this pain point\'s threads with Gemini and is saved, so it is only generated once per week.</p>'
     gen = (f"""<form method="post" action="/opportunity/analyze" data-run-ai><input type="hidden" name="name" value="{escape(name)}">
   <button class="btn" type="submit">{'Regenerate analysis' if insight else 'Generate analysis'}</button>
-  <span class="sub">Uses Gemini · needs the admin password · about 10 seconds</span></form>""" if saving else "")
+  <span class="sub">Uses Gemini · about 10 seconds</span></form>""" if saving else "")
     body = f"""
 <main class="fb">
   {_flash(flash)}

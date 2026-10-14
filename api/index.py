@@ -5,7 +5,6 @@ The /api/run-digest endpoint is hit by Vercel Cron every Friday 03:00 UTC
 the /run-now button (open, no sign-in).
 """
 import asyncio
-import base64
 import os
 import secrets
 import time
@@ -68,31 +67,10 @@ def _check_cron_auth(req: Request) -> None:
         raise HTTPException(401, "unauthorized")
 
 
-def _check_admin(req: Request) -> None:
-    pw = os.getenv("ADMIN_PASSWORD")
-    if not pw:
-        raise HTTPException(500, "ADMIN_PASSWORD env var is not set on the server")
-    header = req.headers.get("authorization", "")
-    if not header.startswith("Basic "):
-        raise HTTPException(
-            401, "auth required",
-            headers={"WWW-Authenticate": 'Basic realm="admin"'},
-        )
-    try:
-        decoded = base64.b64decode(header[6:]).decode()
-        _, got = decoded.split(":", 1)
-    except Exception:
-        raise HTTPException(401, "bad auth header",
-                            headers={"WWW-Authenticate": 'Basic realm="admin"'})
-    if not secrets.compare_digest(got, pw):
-        raise HTTPException(401, "bad credentials",
-                            headers={"WWW-Authenticate": 'Basic realm="admin"'})
-
-
 @app.exception_handler(StarletteHTTPException)
 async def branded_errors(request: Request, exc: StarletteHTTPException):
     """Browser pages get a DevvIT error page; API routes and non-HTML clients keep the JSON error.
-    Headers (e.g. WWW-Authenticate for the admin login prompt) are passed through unchanged."""
+    Headers on the exception are passed through unchanged."""
     if request.url.path.startswith("/api/") or "text/html" not in request.headers.get("accept", ""):
         return await http_exception_handler(request, exc)
     return HTMLResponse(V.error_page(exc.status_code, str(exc.detail)), status_code=exc.status_code,
@@ -118,7 +96,6 @@ def health_html():
         env("Supabase URL", "SUPABASE_URL", "Set", "Missing: SUPABASE_URL"),
         env("Supabase key", "SUPABASE_SERVICE_ROLE_KEY", "Set", "Missing: SUPABASE_SERVICE_ROLE_KEY"),
         env("AI model key", "GEMINI_API_KEY", "Set", "Missing: GEMINI_API_KEY"),
-        env("Admin password", "ADMIN_PASSWORD", "Protects Topics and workspace edits", "Missing: ADMIN_PASSWORD"),
         env("Cron secret", "CRON_SECRET", "Friday run is protected", "Not set: anyone can trigger the weekly run", False),
     ]
 
@@ -382,7 +359,6 @@ def radar_view(request: Request, dismissed: int = 0):
 @app.post("/radar/action")
 def radar_action(request: Request, key: str = Form(...), label: str = Form(...), action: str = Form(...),
                  first_seen: str = Form(""), category: str = Form("")):
-    _check_admin(request)
     sb = db()
     if not W.ready(sb, "radar_state"):
         return RedirectResponse("/radar?msg=migrate", status_code=303)
@@ -468,7 +444,6 @@ def opportunity(request: Request, name: str = ""):
 
 @app.post("/opportunity/save")
 def opportunity_save(request: Request, name: str = Form(...), status: str = Form("New"), notes: str = Form("")):
-    _check_admin(request)
     sb = db()
     if not W.ready(sb, "opportunities"):
         return RedirectResponse(f"/opportunity?name={quote(name)}&msg=migrate", status_code=303)
@@ -480,7 +455,6 @@ def opportunity_save(request: Request, name: str = Form(...), status: str = Form
 
 @app.post("/opportunity/analyze")
 def opportunity_analyze(request: Request, name: str = Form(...)):
-    _check_admin(request)
     sb = db()
     if not W.ready(sb, "opportunity_insights"):
         return RedirectResponse(f"/opportunity?name={quote(name)}&msg=migrate", status_code=303)
@@ -627,7 +601,6 @@ def reports_print(item: list[str] = Form(default=[]), title: str = Form(""), int
 
 @app.get("/reports/new", response_class=HTMLResponse)
 def reports_new(request: Request, pp: list[str] = Query(default=[]), op: list[str] = Query(default=[])):
-    _check_admin(request)
     sb = db()
     items = [f"pp:{n}" for n in pp] + [f"op:{n}" for n in op]
     ctx_snap, _, missing = _combined_snapshot(sb, items, "", "", False)
@@ -644,7 +617,6 @@ def share_create(request: Request, kind: str = Form(...), name: str = Form(""), 
                  visibility: str = Form("unlisted"), expires: str = Form("30")):
     """Create a shared report (owner only). The snapshot is built on the server from stored data; only the title
     and introduction come from the form, as plain text."""
-    _check_admin(request)
     sb = db()
     if not W.ready(sb, "shared_reports"):
         raise HTTPException(503, "Sharing needs the database update: run supabase/migrations/004_shared_reports.sql in Supabase first.")
@@ -666,7 +638,6 @@ def share_create(request: Request, kind: str = Form(...), name: str = Form(""), 
 
 @app.get("/reports", response_class=HTMLResponse)
 def reports_list(request: Request):
-    _check_admin(request)
     sb = db()
     ok = W.ready(sb, "shared_reports")
     rows = SH.all_reports(sb) if ok else []
@@ -682,7 +653,6 @@ def _share_flash(q) -> str | None:
 
 @app.get("/reports/{rid}", response_class=HTMLResponse)
 def report_manage(request: Request, rid: int):
-    _check_admin(request)
     sb = db()
     row = SH.by_id(sb, rid) if W.ready(sb, "shared_reports") else None
     if not row:
@@ -694,7 +664,6 @@ def report_manage(request: Request, rid: int):
 
 @app.post("/reports/{rid}/revoke")
 def report_revoke(request: Request, rid: int):
-    _check_admin(request)
     sb = db()
     if not SH.by_id(sb, rid):
         raise HTTPException(404, "That report doesn't exist.")
@@ -706,7 +675,6 @@ def report_revoke(request: Request, rid: int):
 @app.post("/reports/{rid}/update")
 def report_update(request: Request, rid: int, visibility: str = Form("unlisted"), expires: str = Form("keep"),
                   expires_on: str = Form("")):
-    _check_admin(request)
     sb = db()
     row = SH.by_id(sb, rid)
     if not row:
@@ -745,8 +713,6 @@ def shared_report(request: Request, token: str):
     if state != "active":
         code, html = VS.link_error(state)
         return HTMLResponse(html, status_code=code, headers=_NO_STORE)
-    if row["visibility"] == "private":
-        _check_admin(request)
     try:
         SH.touch(sb, row, now)
     except Exception:
@@ -870,7 +836,6 @@ def building_refresh():
 
 @app.get("/topics", response_class=HTMLResponse)
 def topics_get(request: Request):
-    _check_admin(request)
     sb = db()
     rows = sb.table("topics").select("*").order("id").execute()
     return V.topics_page(rows.data or [])
@@ -878,7 +843,6 @@ def topics_get(request: Request):
 
 @app.post("/topics/add")
 def topics_add(request: Request, category: str = Form(...), keywords: str = Form(...)):
-    _check_admin(request)
     kws = [k.strip() for k in keywords.split(",") if k.strip()]
     if not category.strip() or not kws:
         raise HTTPException(400, "category + at least one keyword required")
@@ -890,7 +854,6 @@ def topics_add(request: Request, category: str = Form(...), keywords: str = Form
 
 @app.post("/topics/toggle/{tid}")
 def topics_toggle(request: Request, tid: int):
-    _check_admin(request)
     sb = db()
     r = sb.table("topics").select("active").eq("id", tid).limit(1).execute()
     cur = r.data[0]["active"] if r.data else True

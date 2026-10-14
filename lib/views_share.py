@@ -35,14 +35,13 @@ SHARE_WIDGET = """
     <form class="sh-opt" method="post" action="/share/create" id="sh-form">
       <input type="hidden" name="kind"><input type="hidden" name="name"><input type="hidden" name="w">
       <button type="submit" class="btn btn-primary">Create shareable link</button>
-      <p>A read-only snapshot of this page as it is now. It won't change when DevvIT's data changes. Needs the admin password.</p>
+      <p>A read-only snapshot of this page as it is now. It won't change when DevvIT's data changes.</p>
       <div class="sh-row">
         <label><input type="radio" name="visibility" value="unlisted" checked> Unlisted link</label>
-        <label><input type="radio" name="visibility" value="private"> Private</label>
         <label class="sh-exp">Expires <select name="expires"><option value="never">Never</option><option value="1">In 1 day</option>
           <option value="7">In 7 days</option><option value="30" selected>In 30 days</option><option value="90">In 90 days</option></select></label>
       </div>
-      <p class="sh-note" data-vis-note>Anyone with an unlisted link can open it, and recipients can forward it. Private reports open only with the admin password.</p>
+      <p class="sh-note" data-vis-note>Anyone with the link can open it, and recipients can forward it.</p>
     </form>
     <div class="sh-opt">
       <a class="btn" id="sh-print" target="_blank" rel="noopener">Export / print</a>
@@ -101,9 +100,7 @@ SHARE_WIDGET = """
   }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) close(); });
   form.addEventListener('change', () => {
-    form.querySelector('[data-vis-note]').textContent = form.visibility.value === 'private'
-      ? 'Private: the link opens only with the admin password. Nobody else can view it.'
-      : 'Anyone with an unlisted link can open it, and recipients can forward it. Private reports open only with the admin password.';
+    form.querySelector('[data-vis-note]').textContent = 'Anyone with the link can open it, and recipients can forward it.';
   });
   document.getElementById('sh-add').addEventListener('click', () => {
     toggle(cur.k, cur.n);
@@ -471,7 +468,6 @@ def _visibility(cur: str = "unlisted") -> str:
 <fieldset class="field" style="border:0;padding:0;margin:12px 0 0"><span>Who can open it</span>
   <label><input type="radio" name="visibility" value="unlisted"{" checked" if cur == "unlisted" else ""}> <b>Unlisted link</b>: anyone with the link can view it.
     It isn't fully private: recipients can forward the link.</label>
-  <label><input type="radio" name="visibility" value="private"{" checked" if cur == "private" else ""}> <b>Private</b>: opens only with the DevvIT admin password.</label>
 </fieldset>"""
 
 
@@ -541,7 +537,7 @@ def builder_page(sections: list[dict], missing: list[str], title: str, intro: st
     <div class="fb-btns" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-primary" type="submit" data-needs-items{" disabled" if not sections or not saving else ""}>Generate shareable link</button>
       <button class="btn" type="submit" formaction="/reports/print" formtarget="_blank" data-needs-items{"" if sections else " disabled"}>Export / print</button>
-      <span class="sub">Generating a link needs the admin password.</span></div>
+      </div>
   </form>
 </main>"""
     return _page("Report preview", body, active="reports", history=history, script=BUILDER_JS)
@@ -571,7 +567,7 @@ def created_page(row: dict, link: str, summary: str, state: str, history: list[d
      {(" · last opened " + escape(_ist_label(row["last_accessed_at"]))) if row.get("last_accessed_at") else " · not opened yet"}</p>
   <section class="panel" style="margin-top:18px"><h2 class="ph">Share link</h2>
     <p class="sub">{"Anyone with this link can view the read-only report, and recipients can forward it." if vis == "unlisted"
-                    else "Private: the link asks for the DevvIT admin password, so only you can open it."}</p>
+                    else "Anyone with this link can view the read-only report. It was created as private, but DevvIT no longer has a password, so the link is open like an unlisted one."}</p>
     <div class="linkbox"><input type="text" readonly value="{escape(link)}" onclick="this.select()" aria-label="Share link">
       <button class="btn btn-primary" type="button" onclick="devvitCopy({escape(repr(link))}, this.parentElement.querySelector('.copied'))">Copy link</button>
       <a class="btn" href="{escape(link)}" target="_blank" rel="noopener">Open</a><span class="copied" role="status"></span></div>
