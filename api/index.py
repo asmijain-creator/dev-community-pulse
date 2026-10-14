@@ -27,6 +27,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from lib import devi
 from lib import share_snapshot as SS, sharing as SH, views_share as VS
 from lib import build_pipeline as BP, building as BLD, views_build as VB
+from lib import building_data as BD, views_building_table as VBT
 from lib import opportunity_ai, radar, scoring
 from lib import views_intel as VI
 from lib import workspace as W
@@ -770,6 +771,13 @@ def _related_pain_points(sb, f: dict, items: list[dict], tech_label: str, labels
         return {"name": f["category"], "rows": rows,
                 "how": "Suggested connections: build discussions in this category whose quoted blocker shares at least two words with a pain point."}
     return None
+
+
+@app.get("/building/table", response_class=HTMLResponse)
+def building_table(state: str = ""):
+    """Building Now projects table prototype on sample data. No database or Gemini call, so it renders anywhere.
+    ?state=loading|empty|error shows those UI states for review."""
+    return VBT.table_page(BD.load_projects(), state if state in ("loading", "empty", "error") else "")
 
 
 @app.get("/building", response_class=HTMLResponse)
