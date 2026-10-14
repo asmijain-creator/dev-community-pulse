@@ -208,7 +208,8 @@ def building_page(d: dict | None, f: dict, history: list[dict], *, state: str = 
   <h1 class="fb-h1">What developers are building in public</h1>
   <p class="fb-sub">Side projects, products, prototypes, open-source work and experiments that developers shared on
      Hacker News, Stack Overflow and GitHub, classified by Gemini. Counts are of public discussions: they show what
-     people talk about building, not how widely a technology is actually used.</p>"""
+     people talk about building, not how widely a technology is actually used.</p>
+  <p class="sub"><a class="more" style="margin:0" href="/building/table">Preview the new projects table (prototype, sample data) →</a></p>"""
     if state != "ok":
         msg = {"migrate": MIGRATION_NOTE,
                "error": f'<div class="note-box err"><b>Building Now couldn\'t load.</b> {escape(error or "The database didn’t respond.")} '
