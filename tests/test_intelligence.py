@@ -156,9 +156,9 @@ AUTH = {"Authorization": "Basic " + base64.b64encode(b"u:pw").decode()}
     ("/opportunity/save", {"name": "n", "status": "New"}),
     ("/opportunity/analyze", {"name": "n"}),
 ])
-def test_writes_need_admin_password(client, path, data):
+def test_writes_need_no_sign_in(client, path, data):
     r = client.post(path, data=data, follow_redirects=False)
-    assert r.status_code == 401 and "Basic" in r.headers.get("www-authenticate", "")
+    assert r.status_code != 401 and "www-authenticate" not in r.headers
 
 
 @pytest.mark.parametrize("path,data", [

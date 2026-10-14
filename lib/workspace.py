@@ -1,7 +1,7 @@
 """Persistence for the research workspace (tables from supabase/migrations/002_research_workspace.sql).
 
 Every helper checks that its table exists first, so the app keeps working, read-only, before the
-migration has been run. Writes are only reached through admin-protected routes.
+migration has been run. Writes go through the app's POST routes, which are open (DevvIT has no sign-in).
 """
 import time
 from datetime import datetime, timezone

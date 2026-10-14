@@ -164,18 +164,16 @@ def test_weekly_report_share(env):
 # ---------- permissions, privacy, revocation, expiry ----------
 @pytest.mark.parametrize("method,path", [("post", "/share/create"), ("get", "/reports"), ("get", "/reports/new"),
                                          ("post", "/reports/1001/revoke"), ("post", "/reports/1001/update")])
-def test_owner_actions_need_admin_password(env, method, path):
+def test_owner_actions_need_no_sign_in(env, method, path):
     _, c = env
     r = getattr(c, method)(path, data={"kind": "pain_point", "name": PP} if method == "post" else None) if method == "post" else c.get(path)
-    assert r.status_code == 401 and "Basic" in r.headers.get("www-authenticate", "")
+    assert r.status_code != 401 and "www-authenticate" not in r.headers
 
 
-def test_private_report_needs_password(env):
+def test_private_report_opens_without_password(env):
     _, c = env
     _, path, _ = create(c, visibility="private")
-    assert c.get(path, headers=HTML).status_code == 401
-    assert c.get(path, headers={**HTML, "Authorization": "Basic " + base64.b64encode(b"u:wrong").decode()}).status_code == 401
-    assert c.get(path, headers={**HTML, **AUTH}).status_code == 200
+    assert c.get(path, headers=HTML).status_code == 200
 
 
 def test_revoked_link_stops_working(env):
@@ -208,7 +206,6 @@ def test_recipients_cannot_edit(env):
     _, c = env
     _, path, _ = create(c)
     assert c.post(path, data={"title": "hacked"}).status_code == 405
-    assert c.post("/reports/1001/update", data={"visibility": "unlisted"}).status_code == 401
 
 
 def test_missing_sources_do_not_break_reports(env):

@@ -93,9 +93,9 @@ Then on the Vercel project:
 ### 5. Verify
 
 - Open `https://<your-app>.vercel.app/api/health` → expect `{"ok": true}`.
-- Open `/` and click **Run now** (prompts for admin password). The first run
+- Open `/` and click **Run now**. The first run
   pulls 14 days of data so the brief has real trend data (last week vs this week).
-- Open `/topics` (same admin password) to add or pause keywords without a redeploy.
+- Open `/topics` to add or pause keywords without a redeploy. There is no sign-in: anyone with the URL can use every page.
 
 ## Env vars
 
@@ -104,7 +104,6 @@ Then on the Vercel project:
 | `GEMINI_API_KEY` | yes | aistudio.google.com |
 | `SUPABASE_URL` | yes | from Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | **server-only** |
-| `ADMIN_PASSWORD` | yes | protects `/topics` and `/run-now` |
 | `CRON_SECRET` | yes | Vercel sends `Authorization: Bearer <secret>` to cron paths |
 | `RESEND_API_KEY` | for email | otherwise brief is only on the dashboard |
 | `DIGEST_EMAIL_TO` | for email | the PM's address |
