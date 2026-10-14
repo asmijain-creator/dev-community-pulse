@@ -34,7 +34,8 @@ def test_live_numbers_and_feed_take_turns():
 def test_page_escapes_labels_and_only_opens_external_links_in_a_new_tab():
     html = VL.landing_page(w._landing_live(bundle(), [{"project_title": "T", "source": "hn",
                                                        "discussion_url": "https://example.com/t", "posted_at": "2026-10-10"}]))
-    assert "<b>slow ci</b>" not in html and "&lt;b&gt;slow ci&lt;/b&gt;" in html
+    assert "<b>slow" not in html                      # the label is escaped, never rendered as markup
+    assert "&lt;b&gt;slow CI&lt;/b&gt;" in html          # and shown with its acronym restored
     assert 'href="https://example.com/t" target="_blank" rel="noopener noreferrer"' in html
     assert "week 41" in html and "Live numbers appear here" not in html
 
