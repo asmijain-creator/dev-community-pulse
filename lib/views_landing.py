@@ -6,16 +6,16 @@ canvas, and stops for visitors who prefer reduced motion.
 """
 from html import escape
 
-from lib.views import BASE_CSS, FAVICON, LOADER, _icon, _nice, _week_no
+from lib.views import BASE_CSS, FAVICON, LOADER, _icon, _logo, _nice, _week_no
 
 CSS = """<style>
   body { background-size: 22px 22px; }
   .lp { max-width: 1180px; margin: 0 auto; padding-inline: 24px; }
   .lp-top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; backdrop-filter: blur(10px);
             background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--border-soft); }
-  .lp-top .lp { display: flex; align-items: center; gap: 22px; height: 62px; }
-  .lp-brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 18px; color: var(--text); }
-  .lp-brand i { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--btn-fg); display: grid; place-items: center; }
+  .lp-top .lp { display: flex; align-items: center; gap: 22px; height: 74px; }
+  .lp-brand { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--text); letter-spacing: -.01em; }
+  .lp-brand .logo-mark { --lm: 42px; }
   .lp-nav { display: flex; gap: 18px; margin-left: auto; font-size: var(--fs-sm); color: var(--text-3); }
   .lp-nav a:hover { color: var(--text); }
   .lp a:focus-visible, .lp-top a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
@@ -178,7 +178,7 @@ def landing_page(live: dict | None) -> str:
 {BASE_CSS}{CSS}
 </head><body>
 <header class="lp-top"><div class="lp">
-  <a class="lp-brand" href="/welcome"><i>{_icon("pulse")}</i>DevvIT</a>
+  <a class="lp-brand" href="/welcome" aria-label="DevvIT">{_logo()}DevvIT</a>
   <nav class="lp-nav" aria-label="Product"><a class="opt" href="/radar">Radar</a><a class="opt" href="/opportunities">Opportunities</a><a href="/building">Building Now</a></nav>
   <a class="btn btn-primary" href="/">Open dashboard</a>
 </div></header>

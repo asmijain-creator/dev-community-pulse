@@ -74,3 +74,14 @@ def test_loading_screen_is_on_every_page_and_hidden_at_rest():
         assert 'class="boot off"' in html                 # a loaded page never starts behind the loader
     assert "[data-run],[data-brefresh]" in V.LOADER        # forms with their own progress keep it
     assert "z-index: 48" in V.LOADER and "z-index: 50" in V.BASE_CSS   # stays under the Run now progress window
+
+
+def test_logo_has_a_glow_running_along_the_pulse():
+    from lib import views as V
+    logo = V._logo()
+    assert logo.count('pathLength="100"') == 2 and 'class="lm-glow"' in logo and 'class="lm-base"' in logo
+    page, landing = V._page("T", "<main></main>"), VL.landing_page(None)
+    assert 'class="sb-brand" href="/" aria-label="DevvIT home"><span class="logo-mark"' in page
+    assert '<div class="boot-logo"><span class="logo-mark"' in page               # loading screen
+    assert 'class="lp-brand" href="/welcome" aria-label="DevvIT"><span class="logo-mark"' in landing
+    assert "@keyframes lm-run" in V.BASE_CSS and "prefers-reduced-motion: reduce) { .lm-glow { animation: none" in V.BASE_CSS
