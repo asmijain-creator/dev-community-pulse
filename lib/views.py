@@ -36,6 +36,7 @@ BASE_CSS = """
     --ok-bg: #11301f; --warn-bg: #33270b; --crit-bg: #3a1620;
     --rail: #070a0e; --rail-fg: #8a98a8; --rail-active: #142230; --rail-strong: #ffffff;
     --flash: rgba(61,220,255,.08);
+    --glow: #ffffff;                      /* the light running along the logo pulse */
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -317,10 +318,22 @@ BASE_CSS = """
   .shell-main > .foot { margin-top: auto; }
   .sb { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--rail); color: var(--rail-fg);
         padding: 22px 14px; display: flex; flex-direction: column; gap: 22px; }
-  .sb-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; color: var(--rail-strong);
-              font-family: var(--display); font-weight: 700; font-size: 18px; }
-  .sb-brand i { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--btn-fg);
-                display: grid; place-items: center; }
+  .sb-brand { display: flex; align-items: center; gap: 12px; padding: 0 6px; color: var(--rail-strong);
+              font-family: var(--display); font-weight: 700; font-size: 23px; letter-spacing: -.01em; }
+  .sb-brand .logo-mark { --lm: 48px; }
+
+  /* DevvIT mark: the pulse line on the accent tile, with a white glow running along the pulse */
+  .logo-mark { --lm: 44px; width: var(--lm); height: var(--lm); flex: none; display: grid; place-items: center;
+               border-radius: calc(var(--lm) * .27); background: var(--accent); color: var(--btn-fg);
+               box-shadow: 0 0 calc(var(--lm) * .5) rgba(61,220,255,.35); }
+  .logo-mark svg { width: 66%; height: 66%; overflow: visible; }
+  .logo-mark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .lm-base { stroke: currentColor; stroke-width: 1.7; }
+  .lm-glow { stroke: var(--glow); stroke-width: 1.8; stroke-dasharray: 22 100; stroke-dashoffset: 22;
+             filter: drop-shadow(0 0 .8px var(--glow)) drop-shadow(0 0 2.4px var(--glow));
+             animation: lm-run 2.4s cubic-bezier(.45, .05, .55, .95) infinite; }
+  @keyframes lm-run { from { stroke-dashoffset: 22; } to { stroke-dashoffset: -100; } }
+  @media (prefers-reduced-motion: reduce) { .lm-glow { animation: none; stroke-dasharray: none; opacity: .45; } }
   .sb-nav { display: flex; flex-direction: column; gap: 2px; }
   .sb-h { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; opacity: .6; padding: 14px 10px 6px; }
   .sb-h:first-child { padding-top: 0; }
@@ -345,6 +358,7 @@ BASE_CSS = """
     .sb { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 12px;
           padding: 10px 16px; overflow-x: auto; }
     .sb-brand span, .sb-h, .sb-nav .t, .sb-card b, .sb-card span, .sb-card .wpick { display: none; }
+    .sb-brand .logo-mark { --lm: 38px; }
     .sb-nav { flex-direction: row; }
     .sb-card { margin: 0 0 0 auto; padding: 0; border: 0; }
     .sb-card .btn { width: auto; }
@@ -808,6 +822,17 @@ def _icon(name: str) -> str:
     return f'<svg class="i" viewBox="0 0 16 16" aria-hidden="true">{_ICONS[name]}</svg>'
 
 
+_PULSE = "M1.5 8h3l2-4.5 3 9 2-4.5h3"
+
+
+def _logo() -> str:
+    """DevvIT mark: the pulse on the accent tile, with a white glow travelling along it (styles: .logo-mark).
+    pathLength=100 lets the glow's dash and its animation use percentages of the line."""
+    return (f'<span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 16 16">'
+            f'<path class="lm-base" d="{_PULSE}" pathLength="100"/><path class="lm-glow" d="{_PULSE}" pathLength="100"/>'
+            '</svg></span>')
+
+
 # Brief sections in homepage order: (key, label, icon, tone). Matching keywords are in _MATCH.
 SECTIONS = [
     ("overview", "Overview", "zap", "gray"),
@@ -909,10 +934,9 @@ LOADER = f"""
   .boot-bar i {{ position: absolute; top: 0; bottom: 0; width: 34%; background: linear-gradient(90deg, transparent, var(--accent), transparent);
                 animation: boot-slide 1.1s ease-in-out infinite; }}
   .boot-c {{ display: flex; flex-direction: column; align-items: center; gap: 14px; font-family: var(--mono); }}
-  .boot-logo {{ position: relative; width: 52px; height: 52px; border-radius: 14px; background: var(--accent); color: var(--btn-fg);
-               display: grid; place-items: center; }}
-  .boot-logo svg.i {{ width: 26px; height: 26px; stroke-width: 1.8; }}
-  .boot-logo::after {{ content: ""; position: absolute; inset: -1px; border-radius: 14px; box-shadow: 0 0 0 0 rgba(61,220,255,.5);
+  .boot-logo {{ position: relative; border-radius: 20px; }}
+  .boot-logo .logo-mark {{ --lm: 76px; }}
+  .boot-logo::after {{ content: ""; position: absolute; inset: -1px; border-radius: 20px; box-shadow: 0 0 0 0 rgba(61,220,255,.5);
                       animation: boot-ring 1.6s ease-out infinite; }}
   .boot-c b {{ font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: .02em; }}
   .boot-c span {{ font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }}
@@ -927,7 +951,7 @@ LOADER = f"""
 </style>
 <div class="boot off" id="boot" role="status" aria-live="polite" aria-hidden="true">
   <div class="boot-bar"><i></i></div>
-  <div class="boot-c"><div class="boot-logo">{_icon("pulse")}</div><b>devvit.runtime</b><span>Loading</span></div>
+  <div class="boot-c"><div class="boot-logo">{_logo()}</div><b>devvit.runtime</b><span>Loading</span></div>
 </div>
 <script>
 (() => {{
@@ -1036,7 +1060,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 </head><body>
 <div class="shell">
 <aside class="sb">
-  <a class="sb-brand" href="/"><i>{_icon("pulse")}</i><span>DevvIT</span></a>
+  <a class="sb-brand" href="/" aria-label="DevvIT home">{_logo()}<span>DevvIT</span></a>
   <nav class="sb-nav" aria-label="Main">{nav}</nav>
   <div class="sb-card"><b>Next brief</b><span>{escape(_next_run_label())}</span>
     {picker}{"" if hide_run else RUN_BUTTON}</div>
