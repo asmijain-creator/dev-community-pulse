@@ -39,7 +39,7 @@ _SCHEMA = {
         "properties": {
             "post_id": {"type": "STRING"},
             "is_build_activity": {"type": "BOOLEAN"},
-            "exclusion_reason": {"type": "STRING", "enum": ["", "not_build", "advertisement", "job_post", "other"]},
+            "exclusion_reason": {"type": "STRING", "enum": ["none", "not_build", "advertisement", "job_post", "other"]},
             "activity_type": {"type": "STRING", "enum": list(B.ACTIVITY)},
             "project_name": {"type": "STRING"},
             "descriptive_title": {"type": "STRING"},
@@ -256,6 +256,7 @@ async def _classify(batches: list[list[dict]], deadline: float, stats: dict) -> 
                     stop["rate_limited"] = True
                 print(f"[build] classify batch failed: {e!r}")
                 stats["failed_batches"] = stats.get("failed_batches", 0) + 1
+                stats.setdefault("first_error", f"{type(e).__name__}: {str(e)[:200]}")   # shown on the page; logs aren't
                 return []
             by_id = {p["id"]: p for p in batch}
             return [(c, by_id[c["post_id"]]) for c in data if isinstance(c, dict) and c.get("post_id") in by_id]

@@ -116,3 +116,32 @@ def test_interleave_lets_every_source_take_turns():
 
 def test_every_weekly_source_has_a_label():
     assert set(S.PER_WEEK) <= set(S.ORIGINS)
+
+
+# ---------- Gemini request format ----------
+def _enums(node):
+    if isinstance(node, dict):
+        if "enum" in node:
+            yield node["enum"]
+        for v in node.values():
+            yield from _enums(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _enums(v)
+
+
+def test_schema_has_no_empty_enum_values():
+    # Gemini rejects the whole request when an enum contains "", which made every classification batch fail
+    assert all(v != "" for e in _enums(BP._SCHEMA) for v in e)
+
+
+def test_none_exclusion_reason_means_no_reason():
+    post = {"id": "hn:1", "source": "hn", "origin": "show_hn", "discussion_url": "https://news.ycombinator.com/item?id=1",
+            "title": "Show HN: Tidepool", "body": "I built Tidepool.", "created_at": "2026-10-05T10:00:00+00:00"}
+    base = {"post_id": "hn:1", "activity_type": "open_source", "project_name": "Tidepool", "descriptive_title": "",
+            "summary": "A queue.", "category": "Developer tools", "technologies": [], "stage": "not_stated",
+            "stage_evidence": "", "blockers": [], "excerpt": "I built Tidepool.", "confidence": 0.9}
+    item, _, _ = B.validate({**base, "is_build_activity": True, "exclusion_reason": "none"}, post, "m")
+    assert item["relevant"] and item["exclusion_reason"] is None
+    item, _, _ = B.validate({**base, "is_build_activity": False, "exclusion_reason": "none"}, post, "m")
+    assert not item["relevant"] and item["exclusion_reason"] == "not_build"
