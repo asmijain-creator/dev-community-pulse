@@ -65,3 +65,12 @@ def test_weeks_count_from_the_first_brief():
         assert V._week_no("2026-12-04") == 0                 # unknown first week: never shows a calendar week
     finally:
         V.set_first_week(None)
+
+
+def test_loading_screen_is_on_every_page_and_hidden_at_rest():
+    from lib import views as V
+    for html in (V._page("T", "<main></main>"), VL.landing_page(None)):
+        assert html.count('id="boot"') == 1
+        assert 'class="boot off"' in html                 # a loaded page never starts behind the loader
+    assert "[data-run],[data-brefresh]" in V.LOADER        # forms with their own progress keep it
+    assert "z-index: 48" in V.LOADER and "z-index: 50" in V.BASE_CSS   # stays under the Run now progress window

@@ -896,6 +896,58 @@ def _nav_link(href: str, icon: str, label: str, active: bool) -> str:
     return f'<a href="{href}" class="{"on" if active else ""}">{_icon(icon)}{label}</a>'
 
 
+# Loading screen shown while the browser fetches the next page (refresh, link click, form submit). The current
+# page stays painted until the next one arrives, so this covers that wait. Hidden on arrival; never shown on a
+# page that is already loaded. Sits under the Run now progress window (z 50) and skips the Building Now update
+# form, which shows its own progress. A navigation that never happens (download, mailto) times out after 15 s.
+LOADER = f"""
+<style>
+  .boot {{ position: fixed; inset: 0; z-index: 48; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 90%, transparent);
+          backdrop-filter: blur(6px); opacity: 1; transition: opacity .18s ease; }}
+  .boot.off {{ opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .18s ease, visibility 0s .18s; }}
+  .boot-bar {{ position: absolute; top: 0; left: 0; right: 0; height: 2px; overflow: hidden; background: var(--border-soft); }}
+  .boot-bar i {{ position: absolute; top: 0; bottom: 0; width: 34%; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+                animation: boot-slide 1.1s ease-in-out infinite; }}
+  .boot-c {{ display: flex; flex-direction: column; align-items: center; gap: 14px; font-family: var(--mono); }}
+  .boot-logo {{ position: relative; width: 52px; height: 52px; border-radius: 14px; background: var(--accent); color: var(--btn-fg);
+               display: grid; place-items: center; }}
+  .boot-logo svg.i {{ width: 26px; height: 26px; stroke-width: 1.8; }}
+  .boot-logo::after {{ content: ""; position: absolute; inset: -1px; border-radius: 14px; box-shadow: 0 0 0 0 rgba(61,220,255,.5);
+                      animation: boot-ring 1.6s ease-out infinite; }}
+  .boot-c b {{ font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: .02em; }}
+  .boot-c span {{ font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }}
+  .boot-c span::after {{ content: ""; display: inline-block; width: 1.4em; text-align: left; animation: boot-dots 1.2s steps(4) infinite; }}
+  @keyframes boot-slide {{ from {{ left: -34%; }} to {{ left: 100%; }} }}
+  @keyframes boot-ring {{ 0% {{ box-shadow: 0 0 0 0 rgba(61,220,255,.5); }} 100% {{ box-shadow: 0 0 0 16px rgba(61,220,255,0); }} }}
+  @keyframes boot-dots {{ 0% {{ content: ""; }} 25% {{ content: "."; }} 50% {{ content: ".."; }} 75% {{ content: "..."; }} }}
+  @media (prefers-reduced-motion: reduce) {{
+    .boot-bar i, .boot-logo::after, .boot-c span::after {{ animation: none; }}
+    .boot-bar i {{ left: 0; width: 100%; }}
+  }}
+</style>
+<div class="boot off" id="boot" role="status" aria-live="polite" aria-hidden="true">
+  <div class="boot-bar"><i></i></div>
+  <div class="boot-c"><div class="boot-logo">{_icon("pulse")}</div><b>devvit.runtime</b><span>Loading</span></div>
+</div>
+<script>
+(() => {{
+  const b = document.getElementById('boot'); if (!b) return;
+  let t, giveUp, skip = false;
+  const hide = () => {{ clearTimeout(t); clearTimeout(giveUp); b.classList.add('off'); b.setAttribute('aria-hidden', 'true'); }};
+  const show = () => {{
+    if (skip) {{ skip = false; return; }}
+    clearTimeout(t);
+    t = setTimeout(() => {{ b.classList.remove('off'); b.setAttribute('aria-hidden', 'false'); }}, 140);
+    giveUp = setTimeout(hide, 15000);
+  }};
+  // forms with their own progress UI (Run now, Building Now update) keep it
+  document.addEventListener('submit', e => {{ if (e.target.matches('[data-run],[data-brefresh]')) skip = true; }}, true);
+  addEventListener('beforeunload', show);
+  addEventListener('pageshow', hide);                      // includes coming back via the back button
+}})();
+</script>"""
+
+
 RUN_OVERLAY = """
 <div class="runbox" id="runbox" hidden>
   <div class="run-card" role="dialog" aria-modal="true" aria-labelledby="run-t">
@@ -995,6 +1047,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><span><a href="/welcome">About DevvIT</a> · <a href="/health">System health</a></span></footer>
 </div>
 </div>
+{LOADER}
 {RUN_OVERLAY}
 {DEVI_WIDGET}
 {_share().SHARE_WIDGET}
