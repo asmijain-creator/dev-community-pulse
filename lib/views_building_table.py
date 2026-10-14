@@ -12,7 +12,7 @@ from lib.views import _icon, _page
 
 CSS = """<style>
   [hidden] { display: none !important; }   /* the drawer, dialog, chips and footer set display: flex */
-  .bt { max-width: 1320px; margin: 0 auto; padding: var(--s8) var(--s6) var(--s12); }
+  .bt { width: 100%; min-width: 0; max-width: 1320px; margin: 0 auto; padding: var(--s8) var(--s6) var(--s12); }
   .bt-sample { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; border-radius: 10px;
                background: var(--warn-bg); color: var(--text); font-size: var(--fs-sm); border: 1px solid var(--border); }
   .bt-sample b { color: var(--warn-text); }
@@ -53,7 +53,10 @@ CSS = """<style>
   .bt-link { border: 0; background: none; font: inherit; font-size: var(--fs-xs); color: var(--link); cursor: pointer; padding: 2px 4px; }
   .bt-link:hover { text-decoration: underline; }
   .bt-scroll { overflow: auto; max-height: 68vh; }
-  table.bt-t { width: 100%; min-width: 1180px; border-collapse: separate; border-spacing: 0; font-size: var(--fs-sm); }
+  table.bt-t { width: 100%; min-width: 1292px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: var(--fs-sm); }
+  .bt-t th[aria-sort]::after { content: none; }      /* the base table style adds its own arrow */
+  .bt-t th.c-proj, .bt-t td.c-proj { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border-soft); }
+  .bt-t th.c-proj { z-index: 2; background: var(--panel); }
   .bt-t th { position: sticky; top: 0; z-index: 1; background: var(--panel); text-align: left; font-weight: 500;
              font-size: var(--fs-xs); color: var(--text-3); padding: 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .bt-t th > span, .bt-t th > button { display: flex; align-items: center; gap: 4px; padding: 9px 10px; }
@@ -64,9 +67,9 @@ CSS = """<style>
   .bt-t td { padding: 9px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
   .bt-t tbody tr:hover td { background: var(--hover); }
   .bt-t tbody tr:last-child td { border-bottom: 0; }
-  .c-proj { width: 250px; } .c-builder { width: 120px; } .c-cat { width: 120px; } .c-tech { width: 200px; }
-  .c-stage { width: 96px; } .c-focus { width: 220px; } .c-blk { width: 74px; } .c-act { width: 130px; }
-  .c-obs { width: 104px; } .c-acts { width: 116px; }
+  .c-proj { width: 230px; } .c-builder { width: 100px; } .c-cat { width: 110px; } .c-tech { width: 170px; }
+  .c-stage { width: 96px; } .c-focus { width: 190px; } .c-blk { width: 64px; } .c-act { width: 124px; }
+  .c-obs { width: 100px; } .c-acts { width: 108px; }
   .bt-proj { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
   .bt-av { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent);
            display: grid; place-items: center; font-weight: 600; font-size: 12px; }
@@ -165,7 +168,7 @@ CSS = """<style>
     .bt-t tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 12px; border-bottom: 1px solid var(--border-soft); }
     .bt-t tbody tr:hover td { background: none; }
     .bt-t td { display: block; padding: 0; border: 0; }
-    .bt-t td.c-proj { grid-column: 1 / -1; }
+    .bt-t td.c-proj { grid-column: 1 / -1; position: static; box-shadow: none; background: none; }
     .bt-t td.hm { display: none; }
     .bt-t td.c-acts { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
     .bt-t td[data-label]::before { content: attr(data-label) " · "; color: var(--text-4); font-size: var(--fs-xs); }
