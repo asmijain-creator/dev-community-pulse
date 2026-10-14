@@ -57,6 +57,8 @@ CSS = """<style>
   .bt-t th[aria-sort]::after { content: none; }      /* the base table style adds its own arrow */
   .bt-t th.c-proj, .bt-t td.c-proj { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border-soft); }
   .bt-t th.c-proj { z-index: 2; background: var(--panel); }
+  .bt-t th.c-acts, .bt-t td.c-acts { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: -1px 0 0 var(--border-soft); }
+  .bt-t th.c-acts { z-index: 2; background: var(--panel); }
   .bt-t th { position: sticky; top: 0; z-index: 1; background: var(--panel); text-align: left; font-weight: 500;
              font-size: var(--fs-xs); color: var(--text-3); padding: 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .bt-t th > span, .bt-t th > button { display: flex; align-items: center; gap: 4px; padding: 9px 10px; }
@@ -170,8 +172,9 @@ CSS = """<style>
     .bt-t td { display: block; padding: 0; border: 0; }
     .bt-t td.c-proj { grid-column: 1 / -1; position: static; box-shadow: none; background: none; }
     .bt-t td.hm { display: none; }
-    .bt-t td.c-acts { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
-    .bt-t td[data-label]::before { content: attr(data-label) " · "; color: var(--text-4); font-size: var(--fs-xs); }
+    .bt-t td.c-acts { grid-column: 2; grid-row: 2 / span 3; align-self: center; position: static; box-shadow: none; background: none; }
+    .bt-t td[data-label] { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .bt-t td[data-label]::before { content: attr(data-label); color: var(--text-4); font-size: var(--fs-xs); min-width: 84px; }
     .bt-desc { white-space: normal; }
   }
   @media (max-width: 460px) { .bt-metrics { grid-template-columns: minmax(0, 1fr); } .bt-dl { grid-template-columns: minmax(0, 1fr); } }
