@@ -1224,8 +1224,23 @@ def _ago(iso: str | None) -> str:
     return "today" if days <= 0 else f"{days} day{'s' if days != 1 else ''} ago"
 
 
+_FIRST_WEEK: date | None = None     # week_start of the earliest stored brief, set by the app (see set_first_week)
+
+
+def set_first_week(week: str | None) -> None:
+    global _FIRST_WEEK
+    _FIRST_WEEK = date.fromisoformat(week) if week else None
+
+
+def first_week_known() -> bool:
+    return _FIRST_WEEK is not None
+
+
 def _week_no(week: str) -> int:
-    return date.fromisoformat(week).isocalendar()[1]
+    """Weeks count from DevvIT's first stored brief: that week is Week 0 (nothing earlier to compare with),
+    the next is Week 1. Before the first brief is known, any week reads as Week 0."""
+    d = date.fromisoformat(week)
+    return max(0, (d - (_FIRST_WEEK or d)).days // 7)
 
 
 def _chg(cur: int, prev: int | None) -> str:
