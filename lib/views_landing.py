@@ -6,7 +6,7 @@ canvas, and stops for visitors who prefer reduced motion.
 """
 from html import escape
 
-from lib.views import BASE_CSS, FAVICON, _icon, _nice, _week_no
+from lib.views import BASE_CSS, FAVICON, LOADER, _icon, _nice, _week_no
 
 CSS = """<style>
   body { background-size: 22px 22px; }
@@ -214,5 +214,6 @@ def landing_page(live: dict | None) -> str:
   <div class="lp-feats">{feat_html}</div>
 </div></section>
 <footer class="lp-foot"><div class="lp"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></div></footer>
+{LOADER}
 {JS}
 </body></html>"""
