@@ -121,6 +121,91 @@ def card(it: dict) -> str:
 </article>"""
 
 
+BRIEF_CSS = """<style>
+  .brief { margin-bottom: 14px; }
+  .brief-lede { font-size: var(--fs-lg); line-height: 1.55; color: var(--text); margin: 12px 0 0; max-width: 80ch; }
+  .brief-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+  .brief-col { border-top: 2px solid var(--tone); padding-top: 10px; min-width: 0; }
+  .brief-col h3 { margin: 0; font-size: var(--fs-md); display: flex; align-items: baseline; gap: 8px; }
+  .brief-col h3 small { font-family: var(--mono); font-size: var(--fs-xs); color: var(--text-3); font-weight: 400; }
+  .brief-col ul { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .brief-col li { font-size: var(--fs-sm); line-height: 1.45; }
+  .brief-col li > a { font-weight: 600; color: var(--text); }
+  .brief-col li > a:hover { color: var(--link); text-decoration: underline; }
+  .brief-col li small { display: block; color: var(--text-3); font-size: var(--fs-xs); margin-top: 2px; }
+  .brief-col li small a { color: var(--link); }
+  .brief-col .chips-row { margin-top: 8px; }
+  @media (max-width: 1000px) { .brief-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>"""
+
+
+def _names(rows: list[dict]) -> str:
+    """'A (3), B (2) and C (1)'."""
+    parts = [f'{escape(r["label"])} ({r["n"]})' for r in rows]
+    return ", ".join(parts[:-1]) + f" and {parts[-1]}" if len(parts) > 1 else "".join(parts)
+
+
+def _link(it: dict, text: str) -> str:
+    url = it.get("discussion_url") or ""
+    href = escape(url) if url.startswith(("https://", "http://")) else "#"
+    return f'<a href="{href}" target="_blank" rel="noopener noreferrer">{escape(text)}</a>'
+
+
+def _brief_example(it: dict) -> str:
+    meta = " · ".join(x for x in (it.get("category") or "Other", B.STAGES.get(it.get("stage") or "", "")) if x)
+    summ = (f' · {escape(B._clip(it["summary"], 120))} <span class="ai-tag">AI summary</span>' if it.get("summary") else "")
+    return f'<li>{_link(it, it.get("project_title") or it.get("title_raw") or "Untitled")}<small>{escape(meta)}{summ}</small></li>'
+
+
+def _brief_column(title: str, tone: str, g: dict, note: str, empty: str) -> str:
+    lines = [f"Mostly {_names(g['categories'])}." if g["categories"] else "",
+             f"Technologies named most: {_names(g['techs'])}." if g["techs"] else ""]
+    examples = "".join(_brief_example(it) for it in g["examples"])
+    return (f'<div class="brief-col" style="--tone:{tone}"><h3>{title}<small>{g["n"]} discussion{"s" if g["n"] != 1 else ""}</small></h3>'
+            f'<p class="sub">{note} {" ".join(x for x in lines if x)}</p>'
+            + (f'<ul>{examples}</ul>' if examples else f'<p class="sub">{empty}</p>') + "</div>")
+
+
+def _brief(b: dict, f: dict, period: str) -> str:
+    """Build brief: what developers are building, ideating and thinking about in this selection."""
+    if not b["total"]:
+        return ""
+    bld, ide = b["building"], b["ideating"]
+    filtered = any(f.get(k) for k in ("category", "tech", "source", "blocker", "theme", "q"))
+    lede = (f'In the {escape(period)}{" (with the current filters)" if filtered else ""}, developers shared '
+            f'<b>{b["total"]}</b> project discussion{"s" if b["total"] != 1 else ""}: <b>{bld["n"]}</b> about something they are '
+            f'building ({bld["shipping"]} launched, in beta or maintained) and <b>{ide["n"]}</b> at the idea or experiment stage.')
+    if b["categories"]:
+        lede += f' Most activity was in {_names(b["categories"])}.'
+    if b["blockers"]:
+        top = b["blockers"][0]
+        lede += f' The blocker reported most often was {escape(top["label"].lower())} ({top["n"]}).'
+
+    thinking = ""
+    for g in b["blockers"]:
+        ex = g["examples"][0]
+        said = f'“{escape(B._clip(ex["quote"], 140))}”' if ex.get("quote") else escape(B._clip(ex["detail"], 140))
+        thinking += (f'<li><b>{escape(g["label"])}</b> · {g["n"]} report{"s" if g["n"] != 1 else ""}'
+                     f'<small>{said} · {_link(ex["item"], ex["item"].get("project_title") or ex["item"].get("title_raw") or "discussion")}</small></li>')
+    emerging = "".join(
+        f'<a class="chip" href="{escape(_href(f, **({"category": r["key"]} if r["kind"] == "category" else {"tech": r["key"]})))}">'
+        f'{escape(r["label"])} <small>{_STATUS[r["status"]][0]}</small></a>' for r in b["emerging"])
+    think_col = (f'<div class="brief-col" style="--tone:var(--down)"><h3>Thinking about</h3>'
+                 f'<p class="sub">Problems builders quoted in their own posts, and what is new or growing in the latest complete week.</p>'
+                 + (f'<ul>{thinking}</ul>' if thinking else '<p class="sub">No blockers were quoted in this selection.</p>')
+                 + (f'<div class="chips-row">{emerging}</div>' if emerging else "") + "</div>")
+    return f"""{BRIEF_CSS}
+<section class="panel brief"><div class="panel-h"><div><h2>Build brief</h2>
+  <p class="sub">Computed from the stored discussions in this selection, not written by AI. Counts are discussions, not people or adoption.</p></div></div>
+  <p class="brief-lede">{lede}</p>
+  <div class="brief-grid">
+    {_brief_column("Building", "var(--accent)", bld, "Prototypes, products, tools and open-source work.", "Nothing being built in this selection.")}
+    {_brief_column("Ideating", "var(--amber)", ide, "Ideas and experiments, not yet a working project.", "No ideas or experiments in this selection.")}
+    {think_col}
+  </div>
+</section>"""
+
+
 def _blockers(groups: list[dict], labels: list[str]) -> str:
     if not groups:
         return '<p class="sub">No builder in this selection quoted a blocker in their post.</p>'
@@ -236,6 +321,7 @@ def building_page(d: dict | None, f: dict, history: list[dict], *, state: str = 
   <div class="kpi"><div class="l">Builders reporting blockers</div><div class="v">{with_blockers}</div><div class="s">quoted in their own post</div></div>
 </div>"""
     tt, tc = d["trend_tech"], d["trend_cat"]
+    brief_html = _brief(B.brief(shown, tt, tc), f, period)
     trend_note = ("Each week is a complete Friday-to-Thursday week; the current week isn't compared until it ends. "
                   "Growing, declining and new are rules of thumb on discussion counts, not statistical tests, and say nothing "
                   "about real adoption.")
@@ -254,6 +340,7 @@ def building_page(d: dict | None, f: dict, history: list[dict], *, state: str = 
   {stale}
   {_filters(f, d["tech_options"])}
   <div class="bresults">
+  {brief_html}
   {kpis}
   <div class="row2 even">
     <section class="panel"><h2 class="ph">Most common project categories</h2><p class="sub">Discussions per category in this selection. Click to filter.</p>
