@@ -110,6 +110,7 @@ Then on the Vercel project:
 | `RESEND_FROM` | optional | default `onboarding@resend.dev` |
 | `GITHUB_TOKEN` | optional | personal access token, no scopes needed, raises rate limit from 10/min to 30/min |
 | `SO_KEY` | optional | raises Stack Exchange quota from 300/day to 10k/day |
+| `PRODUCT_HUNT_TOKEN` | optional | Building Now collects Product Hunt launches only when set (free developer token; check Product Hunt's API terms for your use) |
 
 ## Components map
 

@@ -509,6 +509,7 @@ BASE_CSS = """
   .srow i { display: block; height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; }
   .srow u { display: block; height: 100%; border-radius: 3px; }
   u.s-hn { background: var(--series-0); } u.s-so { background: var(--series-1); } u.s-gh { background: var(--series-2); }
+  u.s-dv { background: var(--amber); } u.s-ph { background: var(--red); }
 
   .sec-h { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s4); margin: var(--s10) 0 var(--s4); }
   .sec-h .more { margin: 0; font-size: 11px; }
@@ -1278,7 +1279,8 @@ def _cov(n: int, u: int) -> str:
 
 _SRC = {"hackernews": ("Hacker News", "s-hn"), "hn": ("Hacker News", "s-hn"),
         "stackoverflow": ("Stack Overflow", "s-so"), "so": ("Stack Overflow", "s-so"),
-        "github": ("GitHub", "s-gh"), "gh": ("GitHub", "s-gh")}
+        "github": ("GitHub", "s-gh"), "gh": ("GitHub", "s-gh"),
+        "devto": ("Dev.to", "s-dv"), "producthunt": ("Product Hunt", "s-ph")}
 
 
 def _src(source: str | None) -> tuple[str, str]:

@@ -1,8 +1,11 @@
 """Building Now: collect public build discussions, classify them with Gemini, store and load them.
 
-Sources (the communities DevvIT already uses):
-- Hacker News "Show HN" posts, via the same public Algolia API as the pain point collector. Each complete
-  week is sampled up to PER_WEEK posts (most upvoted first), so weeks stay comparable for trends.
+Sources:
+- Hacker News "Show HN" posts, via the same public Algolia API as the pain point collector.
+- More public build activity from lib.build_sources: new GitHub repositories, Launch HN posts, replies in
+  "Ask HN: What are you working on?" threads, Dev.to #showdev / #buildinpublic posts and, with a token,
+  Product Hunt launches. Each complete week is sampled up to build_sources.PER_WEEK posts per source (most
+  upvoted or starred first), so weeks stay comparable for trends.
 - Threads already stored in `posts` (Hacker News, Stack Overflow, GitHub) whose text looks like someone
   sharing what they build. A cheap word check picks them, so ordinary questions cost no AI calls.
 
@@ -19,11 +22,10 @@ import httpx
 from google import genai
 from google.genai import types
 
-from lib import building as B
+from lib import build_sources as S, building as B
 from lib.collectors import HN_URL, HTTP_TIMEOUT, _strip_html
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
-PER_WEEK = 40           # Show HN posts sampled per week
 WEEKS_BACK = 4          # complete weeks kept filled, plus the current week
 MAX_FROM_POSTS = 40     # existing DevvIT threads classified per update
 BATCH = 8
@@ -122,19 +124,48 @@ def _windows(now: datetime) -> list[tuple[datetime, datetime]]:
     return [(s, min(s + timedelta(days=7), now)) for s in starts]
 
 
-async def _collect_show_hn(now: datetime, need: dict, stats: dict) -> list[dict]:
-    wins = [(s, e) for s, e in _windows(now) if need.get(s.date().isoformat(), PER_WEEK) > 0]
-    async with httpx.AsyncClient(headers={"User-Agent": "dev-community-pulse/1.0"}) as client:
-        res = await asyncio.gather(*(_show_hn_week(client, s, e, PER_WEEK + 20) for s, e in wins), return_exceptions=True)
+async def _collect(now: datetime, need: dict, stats: dict) -> list[dict]:
+    """Fetch every source in parallel, only for weeks that still need posts. A failing source is recorded in
+    stats[origin]["failed"] and skipped; the others still count."""
+    wins = _windows(now)
+    want = lambda origin: [(s, e) for s, e in wins if need.get((origin, s.date().isoformat()), 0) > 0]
+    token = os.getenv("PRODUCT_HUNT_TOKEN")
+    async with httpx.AsyncClient(headers={"User-Agent": "dev-community-pulse/1.0"}, follow_redirects=True) as c:
+        jobs = [("show_hn", _show_hn_week(c, s, e, S.PER_WEEK["show_hn"] + 20)) for s, e in want("show_hn")]
+        jobs += [("launch_hn", S.launch_hn_week(c, s, e, S.PER_WEEK["launch_hn"] + 5)) for s, e in want("launch_hn")]
+        jobs += [("gh_repo", S.github_week(c, s, e, S.PER_WEEK["gh_repo"] + 10)) for s, e in want("gh_repo")]
+        if token:
+            jobs += [("producthunt", S.producthunt_week(c, s, e, S.PER_WEEK["producthunt"] + 5, token))
+                     for s, e in want("producthunt")]
+        if want("devto"):
+            jobs.append(("devto", S.devto_recent(c, wins[0][0])))
+        jobs.append(("hn_wawo", S.wawo_replies(c, wins[0][0])))
+        res = await asyncio.gather(*(j for _, j in jobs), return_exceptions=True)
     out = []
-    stats["show_hn"] = {"weeks_queried": len(wins), "failed": 0, "fetched": 0}
-    for (s, _), r in zip(wins, res):
+    for (origin, _), r in zip(jobs, res):
+        st = stats.setdefault(origin, {"requests": 0, "failed": 0, "fetched": 0})
+        st["requests"] += 1
         if isinstance(r, Exception):
-            stats["show_hn"]["failed"] += 1
-            print(f"[build] Show HN {s.date()} failed: {r!r}")
+            st["failed"] += 1
+            print(f"[build] {origin} failed: {r!r}")
             continue
-        stats["show_hn"]["fetched"] += len(r)
+        st["fetched"] += len(r)
         out.extend(r)
+    if not token:
+        stats["producthunt"] = {"skipped": "PRODUCT_HUNT_TOKEN is not set"}
+    return out
+
+
+def _interleave(posts: list[dict]) -> list[dict]:
+    """Most upvoted first within each source, sources taking turns, so a time-limited update classifies
+    some of every source instead of only the one with the biggest numbers (GitHub stars beat HN points)."""
+    by: dict[str, list[dict]] = {}
+    for p in sorted(posts, key=lambda p: -(p.get("score") or 0)):
+        by.setdefault(p["origin"], []).append(p)
+    queues, out = list(by.values()), []
+    while queues:
+        out += [q.pop(0) for q in queues]
+        queues = [q for q in queues if q]
     return out
 
 
@@ -149,30 +180,36 @@ def _page_all(make_query, size: int = 1000) -> list[dict]:
 
 
 def candidates(sb, now: datetime, stats: dict) -> list[dict]:
-    """New discussions to classify: Show HN posts for weeks not yet fully sampled, plus build-like DevvIT threads."""
+    """New discussions to classify: posts from every source for weeks not yet fully sampled, plus build-like
+    DevvIT threads. Sources take turns in the returned order (see _interleave)."""
     since = (now - timedelta(days=7 * (WEEKS_BACK + 2))).isoformat()
     known = _page_all(lambda: sb.table("build_items").select("discussion_id,discussion_url,origin,posted_at")
                       .gte("posted_at", since))
     known_ids = {k["discussion_id"] for k in known}
     known_urls = {k["discussion_url"] for k in known}
-    per_week: dict[str, int] = {}
+    per_week: dict[tuple[str, str], int] = {}
     for k in known:
-        if k["origin"] == "show_hn":
-            d = B._day(k["posted_at"])
-            if d:
-                w = B.week_start(d).isoformat()
-                per_week[w] = per_week.get(w, 0) + 1
-    need = {w.isoformat(): PER_WEEK - per_week.get(w.isoformat(), 0)
-            for w in B.complete_weeks(now.date(), WEEKS_BACK) + [B.week_start(now.date())]}
+        d = B._day(k["posted_at"])
+        if d and k["origin"] in S.PER_WEEK:
+            key = (k["origin"], B.week_start(d).isoformat())
+            per_week[key] = per_week.get(key, 0) + 1
+    weeks = [w.isoformat() for w in B.complete_weeks(now.date(), WEEKS_BACK) + [B.week_start(now.date())]]
+    need = {(o, w): cap - per_week.get((o, w), 0) for o, cap in S.PER_WEEK.items() for w in weeks}
 
-    fresh = [p for p in asyncio.run(_collect_show_hn(now, need, stats)) if p["id"] not in known_ids]
+    fresh = [p for p in asyncio.run(_collect(now, need, stats)) if p["id"] not in known_ids]
     picked, taken = [], {}
     for p in sorted(fresh, key=lambda p: -(p["score"] or 0)):
-        w = B.week_start(B._day(p["created_at"])).isoformat()
-        if taken.get(w, 0) < need.get(w, 0) and p["discussion_url"] not in known_urls:
-            taken[w] = taken.get(w, 0) + 1
-            picked.append(p)
-            known_urls.add(p["discussion_url"])
+        d = B._day(p["created_at"])
+        if not d or p["discussion_url"] in known_urls:
+            continue
+        key = (p["origin"], B.week_start(d).isoformat())
+        if p["origin"] in S.PER_WEEK:              # weekly-sampled sources; thread replies are capped per thread
+            if taken.get(key, 0) >= need.get(key, 0):
+                continue
+            taken[key] = taken.get(key, 0) + 1
+        picked.append(p)
+        known_urls.add(p["discussion_url"])
+    picked = _interleave(picked)
 
     rows = _page_all(lambda: sb.table("posts").select("id,source,title,body,url,score,comments,created_at")
                      .gte("created_at", since).order("created_at", desc=True))
@@ -248,6 +285,8 @@ def refresh(sb, trigger: str = "manual", budget_s: float = 200) -> dict:
         items, techs, blockers = [], [], []
         for c, post in pairs:
             it, ts, bs = B.validate(c, post, MODEL)
+            if it["relevant"]:
+                ts += B.repo_tags(post, {t["key"] for t in ts})     # GitHub topics and language, as listed on the repo
             items.append(it)
             techs += ts
             blockers += bs

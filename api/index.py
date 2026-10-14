@@ -738,7 +738,7 @@ def _build_filters(q) -> dict:
     except ValueError:
         days = 30
     f = {"days": days if days in (7, 30, 90, 0) else 30}
-    for k, allowed in (("category", set(BLD.CATEGORIES)), ("source", {"hn", "stackoverflow", "github"}),
+    for k, allowed in (("category", set(BLD.CATEGORIES)), ("source", {"hn", "stackoverflow", "github", "devto", "producthunt"}),
                        ("blocker", set(BLD.BLOCKERS)), ("theme", {"emerging", "recurring"})):
         f[k] = q.get(k) if q.get(k) in allowed else ""
     f["tech"] = BLD.tech_key(q.get("tech") or "")
@@ -788,6 +788,7 @@ def building(request: Request):
         today = now.date()
         items = d["items"]
         tt, tc = BLD.trends(items, today, "tech"), BLD.trends(items, today, "category")
+        tp = BLD.trends(items, today, "topic")
         shown = BLD.apply_filters(items, f, today)
         if f["theme"]:
             keys = BLD.theme_keys(tt, f["theme"]) | BLD.theme_keys(tc, f["theme"])
@@ -799,7 +800,8 @@ def building(request: Request):
         labels = sorted({m["pain_point"] for m in metrics})
         d.update(f=f, shown=shown, recent=sorted(shown, key=lambda it: it.get("posted_at") or "", reverse=True)[:24],
                  cats=BLD.top_counts(shown, "category"), techs=BLD.top_counts(shown, "tech", 12),
-                 trend_tech=tt, trend_cat=tc, blockers=BLD.blocker_groups(shown), labels=labels,
+                 trend_tech=tt, trend_cat=tc, trend_topic=tp, topics=BLD.top_counts(shown, "topic", 12),
+                 langs=BLD.top_counts(shown, "language", 10), blockers=BLD.blocker_groups(shown), labels=labels,
                  tech_options=tech_options, related=_related_pain_points(sb, f, items, tech_label, labels, weeks),
                  fresh=BLD.freshness(items, d["refreshes"], now), flash=_build_message(request.query_params))
     except Exception as e:
