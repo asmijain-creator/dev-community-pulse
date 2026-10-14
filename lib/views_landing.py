@@ -52,7 +52,8 @@ CSS = """<style>
   .lp-log a:hover { color: var(--link); text-decoration: underline; }
   .lp-log .m { color: var(--text-4); white-space: nowrap; }
   .lp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--border-soft); }
-  .lp-stat { padding: 26px 24px; border-right: 1px solid var(--border-soft); min-width: 0; }
+  .lp-stat { padding: 26px 24px 26px 0; border-right: 1px solid var(--border-soft); min-width: 0; }
+  .lp-stat + .lp-stat { padding-left: 24px; }
   .lp-stat:last-child { border-right: 0; }
   .lp-stat b { display: block; font-family: var(--display); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .lp-stat span { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
@@ -80,6 +81,7 @@ CSS = """<style>
     .lp-hero .lp { grid-template-columns: minmax(0, 1fr); padding-block: 48px 56px; gap: 36px; }
     .lp-stats, .lp-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .lp-stat:nth-child(2) { border-right: 0; } .lp-stat:nth-child(-n+2) { border-bottom: 1px solid var(--border-soft); }
+    .lp-stat:nth-child(3) { padding-left: 0; }
     .lp-steps li:nth-child(2) { border-right: 0; } .lp-steps li:nth-child(-n+2) { border-bottom: 1px solid var(--border-soft); }
     .lp-feats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .lp-nav a.opt { display: none; }
@@ -88,6 +90,7 @@ CSS = """<style>
     .lp { padding-inline: 16px; }
     .lp-stats, .lp-steps, .lp-feats { grid-template-columns: minmax(0, 1fr); }
     .lp-stat, .lp-steps li { border-right: 0; border-bottom: 1px solid var(--border-soft); }
+    .lp-stat + .lp-stat { padding-left: 0; }
     .lp-log li { grid-template-columns: 48px minmax(0, 1fr); } .lp-log .m { display: none; }
     .lp-nav { display: none; } .lp-top .btn { margin-left: auto; }
   }
