@@ -52,3 +52,12 @@ def test_welcome_route_survives_a_database_failure(monkeypatch):
     monkeypatch.setattr(w, "db", broken)
     r = TestClient(w.app).get("/welcome", headers=HTML)
     assert r.status_code == 200 and "Developer intelligence runtime" in r.text and "Open the dashboard" in r.text
+
+
+def test_loading_screen_is_on_every_page_and_hidden_at_rest():
+    from lib import views as V
+    for html in (V._page("T", "<main></main>"), VL.landing_page(None)):
+        assert html.count('id="boot"') == 1
+        assert 'class="boot off"' in html                 # a loaded page never starts behind the loader
+    assert "[data-run],[data-brefresh]" in V.LOADER        # forms with their own progress keep it
+    assert "z-index: 48" in V.LOADER and "z-index: 50" in V.BASE_CSS   # stays under the Run now progress window
