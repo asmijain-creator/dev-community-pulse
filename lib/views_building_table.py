@@ -291,7 +291,7 @@ JS = r"""<script>
       <td class="c-obs" data-label="Last observed"><time class="bt-obs" datetime="${esc(p.lastObservedAt)}" title="Evidence last observed ${fmt(p.lastObservedAt)}">${ago(p.lastObservedAt)}</time></td>
       <td class="c-acts"><div class="bt-acts">
         <button type="button" class="bt-ib" data-open="${esc(p.id)}" aria-label="View details for ${esc(p.name)}" title="View details">${SVG.eye}</button>
-        <button type="button" class="bt-ib" data-watch="${esc(p.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove from' : 'Add to'} watchlist: ${esc(p.name)}" title="${saved ? 'Remove from watchlist' : 'Add to watchlist'}">${SVG.star}</button>
+        <button type="button" class="bt-ib" data-bt-watch="${esc(p.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove from' : 'Add to'} watchlist: ${esc(p.name)}" title="${saved ? 'Remove from watchlist' : 'Add to watchlist'}">${SVG.star}</button>
         <button type="button" class="bt-ib" data-share="${esc(p.id)}" aria-label="Share ${esc(p.name)}" title="Share">${SVG.share}</button></div></td>
     </tr>`;
   };
@@ -384,7 +384,7 @@ JS = r"""<script>
       <div class="bt-dh"><span class="bt-av" aria-hidden="true">${esc(p.name.trim()[0] || '?').toUpperCase()}</span><h2 id="bt-dt">${esc(p.name)}</h2>
         <button type="button" class="bt-x" style="position:static" data-close aria-label="Close details">×</button></div>
       <p style="margin:0;color:var(--text-2)">${esc(p.description)}</p>
-      <div class="bt-row"><button type="button" class="btn${saved ? '' : ' btn-primary'}" data-watch="${esc(p.id)}" aria-pressed="${saved}">${saved ? 'Remove from watchlist' : 'Add to watchlist'}</button>
+      <div class="bt-row"><button type="button" class="btn${saved ? '' : ' btn-primary'}" data-bt-watch="${esc(p.id)}" aria-pressed="${saved}">${saved ? 'Remove from watchlist' : 'Add to watchlist'}</button>
         <button type="button" class="btn" data-share="${esc(p.id)}">Share</button>
         ${p.sourceUrl ? `<a class="btn" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>` : '<button type="button" class="btn" disabled title="No source link recorded">Open source</button>'}</div>
       <dl class="bt-dl">
@@ -463,11 +463,11 @@ JS = r"""<script>
     st.sort = k; reset();
   }));
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-open],[data-watch],[data-share],[data-blockers],[data-tech],[data-more],[data-clear],[data-close]');
+    const t = e.target.closest('[data-open],[data-bt-watch],[data-share],[data-blockers],[data-tech],[data-more],[data-clear],[data-close]');
     if (!t) { if (!pop.hidden && !e.target.closest('#bt-pop')) closePop(); if (e.target === ov) closeAll(); return; }
     if (!t.dataset.blockers) closePop();
     if (t.dataset.open) openDrawer(t.dataset.open);
-    else if (t.dataset.watch) toggleWatch(t.dataset.watch);
+    else if (t.dataset.btWatch) toggleWatch(t.dataset.btWatch);
     else if (t.dataset.share) { closeAll(); openShare(t.dataset.share); }
     else if (t.dataset.blockers) openPop(t);
     else if (t.dataset.tech) setFilter('tech', st.tech === t.dataset.tech ? '' : t.dataset.tech);
