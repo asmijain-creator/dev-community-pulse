@@ -144,7 +144,11 @@ def _load_week(sb, week: str | None = None):
 
 
 def _history(sb) -> list[dict]:
-    return sb.table("digests").select("week_start").order("week_start", desc=True).limit(12).execute().data or []
+    hist = sb.table("digests").select("week_start").order("week_start", desc=True).limit(12).execute().data or []
+    if not V.first_week_known():            # week numbers count from the first brief ever stored (Week 0)
+        first = sb.table("digests").select("week_start").order("week_start").limit(1).execute().data or []
+        V.set_first_week(first[0]["week_start"] if first else None)
+    return hist
 
 
 def _bundle(sb, week: str | None = None) -> dict | None:

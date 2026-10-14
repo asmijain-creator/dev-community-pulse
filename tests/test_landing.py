@@ -37,7 +37,7 @@ def test_page_escapes_labels_and_only_opens_external_links_in_a_new_tab():
     assert "<b>slow" not in html                      # the label is escaped, never rendered as markup
     assert "&lt;b&gt;slow CI&lt;/b&gt;" in html          # and shown with its acronym restored
     assert 'href="https://example.com/t" target="_blank" rel="noopener noreferrer"' in html
-    assert "week 41" in html and "Live numbers appear here" not in html
+    assert "Live numbers appear here" not in html
 
 
 def test_page_renders_without_live_data():
@@ -52,6 +52,19 @@ def test_welcome_route_survives_a_database_failure(monkeypatch):
     monkeypatch.setattr(w, "db", broken)
     r = TestClient(w.app).get("/welcome", headers=HTML)
     assert r.status_code == 200 and "Developer intelligence runtime" in r.text and "Open the dashboard" in r.text
+
+
+def test_weeks_count_from_the_first_brief():
+    from lib import views as V
+    try:
+        V.set_first_week("2026-10-09")
+        assert V._week_no("2026-10-09") == 0                 # the first brief has no baseline: Week 0
+        assert V._week_no("2026-10-16") == 1 and V._week_no("2026-11-06") == 4
+        assert "week 0" in VL.landing_page({"week": "2026-10-09", "feed": []})
+        V.set_first_week(None)
+        assert V._week_no("2026-12-04") == 0                 # unknown first week: never shows a calendar week
+    finally:
+        V.set_first_week(None)
 
 
 def test_loading_screen_is_on_every_page_and_hidden_at_rest():
