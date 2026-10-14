@@ -192,15 +192,40 @@ def apply_filters(items: list[dict], f: dict, today: date) -> list[dict]:
 
 
 # ---------- counts ----------
+def _keys(it: dict, kind: str) -> list[tuple[str, str]]:
+    """(key, label) pairs one discussion contributes to a count: its 'category', explicitly named technologies
+    ('tech', GitHub topics excluded), GitHub repository topics ('topic') or languages ('language')."""
+    if kind == "category":
+        return [(it.get("category") or "Other", it.get("category") or "Other")]
+    techs = [t for t in it.get("techs", []) if t["explicit"]]
+    if kind == "topic":
+        return [(t["key"], t["name"]) for t in techs if t.get("kind") == "topic"]
+    if kind == "language":
+        return [(t["key"], t["name"]) for t in techs if t.get("kind") == "language"]
+    return [(t["key"], t["name"]) for t in techs if t.get("kind") != "topic"]
+
+
+def repo_tags(post: dict, seen: set[str]) -> list[dict]:
+    """Technology rows for a GitHub repository's own language and topics (listed on the repo, so explicit).
+    Topic keys are prefixed so a 'python' topic never collides with the Python language on the same repo."""
+    rows = []
+    lang = (post.get("language") or "").strip()
+    if lang and tech_key(lang) and tech_key(lang) not in seen:
+        rows.append({"discussion_id": post["id"], "name": _clip(lang, 60), "key": tech_key(lang), "kind": "language",
+                     "explicit": True})
+    for t in post.get("topics") or []:
+        k = "topic" + tech_key(t)
+        if k != "topic" and k not in seen:
+            seen = seen | {k}
+            rows.append({"discussion_id": post["id"], "name": _clip(t, 60), "key": k, "kind": "topic", "explicit": True})
+    return rows
+
+
 def top_counts(items: list[dict], kind: str, n: int = 10) -> list[dict]:
-    """Most common categories ('category') or explicitly mentioned technologies ('tech'), by discussions."""
+    """Most common categories, technologies, GitHub topics or languages (see _keys), by discussions."""
     counts: dict[str, dict] = {}
     for it in items:
-        if kind == "category":
-            keys = [(it.get("category") or "Other", it.get("category") or "Other")]
-        else:
-            keys = [(t["key"], t["name"]) for t in it.get("techs", []) if t["explicit"]]
-        for k, label in keys:
+        for k, label in _keys(it, kind):
             c = counts.setdefault(k, {"key": k, "label": label, "n": 0, "names": {}})
             c["n"] += 1
             c["names"][label] = c["names"].get(label, 0) + 1
@@ -243,11 +268,7 @@ def trends(items: list[dict], today: date, kind: str, weeks: int = 4, min_total:
             continue
         i = idx[w]
         totals[i] += 1
-        if kind == "category":
-            keys = {(it.get("category") or "Other", it.get("category") or "Other")}
-        else:
-            keys = {(t["key"], t["name"]) for t in it.get("techs", []) if t["explicit"]}
-        for k, label in keys:
+        for k, label in set(_keys(it, kind)):
             s = series.setdefault(k, {"key": k, "label": label, "counts": [0] * len(wk)})
             s["counts"][i] += 1
     earlier_with_data = sum(1 for t in totals[:-1] if t)

@@ -3,10 +3,11 @@
 Every number is computed from stored rows (lib.building). AI-written text (summaries, descriptive titles,
 inferred technologies, suggested pain point links) is labelled as AI wherever it appears.
 """
+import os
 from html import escape
 from urllib.parse import urlencode
 
-from lib import building as B
+from lib import build_sources as S, building as B
 from lib.views import _ago, _flash, _nice, _page, _point_href, _spark, _src
 
 MIGRATION_NOTE = ('<div class="note-box"><b>Building Now needs a one-time database update.</b> Run '
@@ -16,7 +17,8 @@ MIGRATION_NOTE = ('<div class="note-box"><b>Building Now needs a one-time databa
 _STATUS = {"new": ("New", "up"), "growing": ("▲ Growing", "up"), "declining": ("▼ Declining", "down"),
            "stable": ("Stable", "flat"), "pending": ("Needs history", "flat")}
 _PERIODS = [(7, "Last 7 days"), (30, "Last 30 days"), (90, "Last 90 days"), (0, "All stored")]
-_SOURCES = [("hn", "Hacker News"), ("stackoverflow", "Stack Overflow"), ("github", "GitHub")]
+_SOURCES = [("hn", "Hacker News"), ("github", "GitHub"), ("devto", "Dev.to"), ("producthunt", "Product Hunt"),
+            ("stackoverflow", "Stack Overflow")]
 
 
 def _href(f: dict, **change) -> str:
@@ -244,8 +246,12 @@ def _coverage(d: dict, items: list[dict]) -> str:
     src = " · ".join(f'{n}: <b>{per_src[s]}</b>' for s, n in _SOURCES)
     excl = ", ".join(f'{v} {k.replace("_", " ")}' for k, v in sorted(d["excluded"].items(), key=lambda x: -x[1])) or "none"
     issues = []
-    if (last.get("show_hn") or {}).get("failed"):
-        issues.append(f'{last["show_hn"]["failed"]} Show HN week{"s" if last["show_hn"]["failed"] != 1 else ""} failed to load')
+    for origin, label in S.ORIGINS.items():
+        st = last.get(origin) or {}
+        if st.get("failed"):
+            issues.append(f'{label}: {st["failed"]} of {st.get("requests", st["failed"])} requests failed')
+    if (last.get("producthunt") or {}).get("skipped"):
+        issues.append("Product Hunt skipped: PRODUCT_HUNT_TOKEN is not set")
     if last.get("failed_batches"):
         issues.append(f'{last["failed_batches"]} AI batch{"es" if last["failed_batches"] != 1 else ""} failed')
     if last.get("rate_limited"):
@@ -263,9 +269,14 @@ def _coverage(d: dict, items: list[dict]) -> str:
     <tr><td><b>Classified</b></td><td class="sub">{d["classified"]} discussions in the last 100 days, {len(d["items"])} were build activity. Excluded: {escape(excl)}.</td></tr>
     <tr><td><b>Last update issues</b></td><td class="sub">{escape(" · ".join(issues)) or "None"}</td></tr>
     <tr><td><b>Update now</b></td><td>{REFRESH_FORM}</td></tr>
-    <tr><td><b>How it's collected</b></td><td class="sub">Up to 40 of each week's most upvoted Hacker News “Show HN” posts, plus DevvIT threads
-      (Hacker News, Stack Overflow, GitHub) whose text says the author built or is building something. Each discussion is
-      classified once by Gemini; names, stages, quotes and technologies are checked against the post text.</td></tr>
+    <tr><td><b>How it's collected</b></td><td class="sub">Each week, the most upvoted or starred posts from: Hacker News “Show HN” (up to
+      {S.PER_WEEK["show_hn"]}) and “Launch HN” ({S.PER_WEEK["launch_hn"]}); new GitHub repositories with {S.GH_MIN_STARS}+ stars
+      ({S.PER_WEEK["gh_repo"]}); Dev.to #showdev and #buildinpublic ({S.PER_WEEK["devto"]}); Product Hunt launches
+      ({S.PER_WEEK["producthunt"]}, {"on" if os.getenv("PRODUCT_HUNT_TOKEN") else "off until PRODUCT_HUNT_TOKEN is set"}).
+      Plus up to {S.WAWO_PER_THREAD} replies per “Ask HN: What are you working on?” thread, and DevvIT threads (Hacker News,
+      Stack Overflow, GitHub) whose text says the author built or is building something. Reddit isn't collected: its API
+      needs an app login. Each discussion is classified once by Gemini; names, stages, quotes and technologies are checked
+      against the post text. Star and vote counts are what each site showed when collected.</td></tr>
   </tbody></table></section>"""
 
 
@@ -283,8 +294,9 @@ document.querySelectorAll('form[data-brefresh]').forEach(r => r.addEventListener
 
 REFRESH_FORM = ('<form method="post" action="/building/refresh" class="inline" data-brefresh>'
                 '<button class="btn" type="submit">Update build activity</button> '
-                '<span class="sub">Collects new Show HN posts and classifies only discussions not seen before. '
-                'No brief or email. Can take a few minutes the first time.</span></form>')
+                '<span class="sub">Collects new posts from Hacker News, GitHub, Dev.to and Product Hunt (when connected) '
+                'and classifies only discussions not seen before. No brief or email. Can take a few minutes; '
+                'anything left over is picked up by the next update.</span></form>')
 
 
 def building_page(d: dict | None, f: dict, history: list[dict], *, state: str = "ok", error: str | None = None) -> str:
@@ -348,6 +360,14 @@ def building_page(d: dict | None, f: dict, history: list[dict], *, state: str = 
     <section class="panel"><h2 class="ph">Frequently mentioned technologies</h2><p class="sub">Only technologies named in the post are counted.</p>
       {_blist(d["techs"], f, "tech", "No technologies named in this selection.")}</section>
   </div>
+  <section class="panel" style="margin-top:14px"><h2 class="ph">Industry view: what new GitHub repositories are about</h2>
+    <p class="sub">Topics and languages listed on new GitHub repositories classified as build activity. Counts are repositories, not
+      adoption. Click to filter.</p>
+    <div class="row2 even" style="margin-top:6px">
+      <div><h3 class="sub-h">Repository topics</h3>{_blist(d.get("topics") or [], f, "tech", "No GitHub repositories in this selection yet.")}</div>
+      <div><h3 class="sub-h">Languages</h3>{_blist(d.get("langs") or [], f, "tech", "No languages in this selection.")}</div>
+    </div>
+    <h3 class="sub-h">Topic trends</h3>{_trend_table(d.get("trend_topic") or {"rows": [], "weeks": [], "totals": []}, f, "tech", "Topic")}</section>
   <section class="panel" style="margin-top:14px"><h2 class="ph">Emerging build categories and technologies</h2>
     <p class="sub">New or growing in the latest complete week compared with the weeks before.</p><div class="chips-row">{emerging_html}</div></section>
   <section class="panel" style="margin-top:14px"><h2 class="ph">Technology and build-trend radar</h2>
