@@ -275,6 +275,38 @@ def trends(items: list[dict], today: date, kind: str, weeks: int = 4, min_total:
             "history_ok": bool(totals[-1]) and earlier_with_data > 0}
 
 
+# ---------- build brief ----------
+SHIPPING_STAGES = {"alpha_beta", "launched", "maintained"}
+
+
+def phase(it: dict) -> str:
+    """'building' or 'ideating', from what the post states. A stated stage wins (idea = ideating); without one,
+    an experiment counts as ideating and every other activity type as building."""
+    stage = it.get("stage")
+    if stage:
+        return "ideating" if stage == "idea" else "building"
+    return "ideating" if it.get("activity_type") == "experiment" else "building"
+
+
+def brief(items: list[dict], trend_tech: dict, trend_cat: dict, n_examples: int = 3) -> dict:
+    """What developers are building, ideating and thinking about in a selection of build discussions.
+    Every number is a count of stored discussions; examples are the most-engaged discussions in each group."""
+    groups: dict[str, list[dict]] = {"building": [], "ideating": []}
+    for it in items:
+        groups[phase(it)].append(it)
+
+    def summary(rows: list[dict]) -> dict:
+        return {"n": len(rows), "shipping": sum(1 for it in rows if it.get("stage") in SHIPPING_STAGES),
+                "categories": top_counts(rows, "category", 3), "techs": top_counts(rows, "tech", 4),
+                "examples": sorted(rows, key=lambda it: -((it.get("score") or 0) + (it.get("comments") or 0)))[:n_examples]}
+
+    emerging = [{**r, "kind": "category"} for r in trend_cat["rows"] if r["status"] in {"new", "growing"}]
+    emerging += [{**r, "kind": "tech"} for r in trend_tech["rows"] if r["status"] in {"new", "growing"}]
+    return {"total": len(items), "categories": top_counts(items, "category", 3),
+            "building": summary(groups["building"]), "ideating": summary(groups["ideating"]),
+            "blockers": blocker_groups(items)[:3], "emerging": emerging[:5]}
+
+
 def theme_keys(trend: dict, which: str) -> set[str]:
     """Keys that are emerging (new or growing in the latest complete week) or recurring (seen in 2+ earlier weeks)."""
     if which == "emerging":
