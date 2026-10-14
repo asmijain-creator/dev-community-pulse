@@ -29,6 +29,7 @@ from lib import share_snapshot as SS, sharing as SH, views_share as VS
 from lib import build_pipeline as BP, building as BLD, views_build as VB
 from lib import opportunity_ai, radar, scoring
 from lib import views_intel as VI
+from lib import views_landing as VL
 from lib import workspace as W
 from lib.evidence import opinion_mix, unique_threads
 from lib import views as V
@@ -169,6 +170,38 @@ def _bundle(sb, week: str | None = None) -> dict | None:
     return {"week": ws, "prev_week": prev_week, "weeks": weeks, "series": series, "prev": prev,
             "metrics": metrics, "brief_html": brief_html, "sections": V.parse_brief(brief_html),
             "posts": posts, "topics": topics, "created_at": meta[0]["created_at"] if meta else None}
+
+
+@app.get("/welcome", response_class=HTMLResponse)
+def welcome():
+    """Public landing page. Live numbers and feed when the database answers; the page renders without them."""
+    live = None
+    if _env_check()[0]:
+        try:
+            sb = db()
+            builds = BP.load(sb, days=30)["items"] if W.ready(sb, "build_items") else []
+            live = _landing_live(_bundle(sb), builds)
+        except Exception as e:
+            print(f"[welcome] live data unavailable: {e!r}")
+    return HTMLResponse(VL.landing_page(live))
+
+
+def _landing_live(b: dict | None, builds: list[dict]) -> dict:
+    """Numbers and console feed for the landing page: this week's top pain points and the newest build posts, taking turns."""
+    metrics = (b or {}).get("metrics") or []
+    pains = [{"kind": "pain", "label": V._nice(m["pain_point"]), "meta": f"{m['mention_count']} mentions",
+              "href": V._point_href(m["pain_point"], b["week"]), "external": False} for m in metrics[:6]]
+    made = []
+    for it in sorted(builds, key=lambda it: it.get("posted_at") or "", reverse=True)[:6]:
+        url = it.get("discussion_url") or ""
+        ext = url.startswith(("https://", "http://"))
+        made.append({"kind": "build", "label": it.get("project_title") or it.get("title_raw") or "Untitled",
+                     "meta": V._src(it.get("source"))[0], "href": url if ext else "/building", "external": ext})
+    feed = [x for pair in zip(pains, made) for x in pair] + pains[len(made):] + made[len(pains):]
+    return {"week": (b or {}).get("week"), "pain_points": len(metrics) if b else None,
+            "mentions": sum(m["mention_count"] for m in metrics) if b else None,
+            "unresolved": sum(1 for p in b.get("posts") or [] if p.get("is_unresolved")) if b else None,
+            "builds": len(builds), "feed": feed}
 
 
 @app.get("/", response_class=HTMLResponse)
