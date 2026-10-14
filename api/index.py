@@ -200,7 +200,20 @@ def home(request: Request):
     if not ok:
         return HTMLResponse(V.not_configured(missing))
     sb = db()
-    return V.dashboard(_bundle(sb), _history(sb), flash=_run_message(request.query_params))
+    return V.dashboard(_bundle(sb), _history(sb), flash=_run_message(request.query_params), intel=_home_intel(sb))
+
+
+def _home_intel(sb) -> dict:
+    """Radar findings and scored opportunities for the homepage panels. Never breaks the brief if it fails."""
+    try:
+        recent = _recent(sb)
+        _, weeks, metrics, posts = recent
+        found = radar.find_signals(weeks, metrics, posts, W.radar_states(sb))["findings"]
+        _, _, opps, _ = _opportunity_rows(sb, scoring.DEFAULT_WEIGHTS, recent)
+        return {"radar": found, "opps": opps}
+    except Exception as e:
+        print(f"[home] radar/opportunities unavailable: {e!r}")
+        return {}
 
 
 @app.get("/history/{week}", response_class=HTMLResponse)
@@ -389,8 +402,8 @@ def radar_action(request: Request, key: str = Form(...), label: str = Form(...),
     return RedirectResponse(f"/radar?msg={action}", status_code=303)
 
 
-def _opportunity_rows(sb, weights: dict):
-    hist, weeks, metrics, posts = _recent(sb)
+def _opportunity_rows(sb, weights: dict, recent: tuple | None = None):
+    hist, weeks, metrics, posts = recent or _recent(sb)
     if not weeks:
         return hist, weeks, [], False
     latest, base_weeks = weeks[-1], weeks[:-1][-4:]

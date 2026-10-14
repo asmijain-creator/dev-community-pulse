@@ -18,44 +18,49 @@ BASE_CSS = """
     /* spacing scale (4px grid) */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px;
     --radius: 12px; --radius-sm: 8px;
-    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-    /* warm paper surfaces; rust = rising / problem, blue = falling, ink = emphasis */
-    --bg: #f4f3ef; --panel: #f9f8f5; --surface: #ffffff; --hover: #f6f5f1; --chip: #efede8;
-    --border: #e5e2db; --border-soft: #efede8;
-    --text: #1c1b19; --text-2: #45423d; --text-3: #75716a; --text-4: #a39f97;
-    --ink: #18181b; --ink-hover: #2c2c30; --accent: #b9410f; --accent-strong: #b9410f; --accent-on-ink: #f0a06c;
-    --accent-soft: rgba(194,65,12,.10);
-    --up: #b9410f; --up-bg: #fbe7da; --down: #1d4ed8; --down-bg: #e2eafc;
-    --peach: #fbeadf; --peach-border: #f3d3bf;
-    --series-0: #c2410c; --series-1: #2563eb; --series-2: #1c1b19;
-    --btn-bg: #18181b; --btn-hover: #2c2c30; --btn-fg: #ffffff;
-    --link: #b9410f; --bar: #c2410c; --bar-muted: #f1c4a6;
-    --green: #15803d; --red: #c2410c; --amber: #b45309; --warn-text: #b45309;
-    --flash: rgba(194,65,12,.07);
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: 'Sora', system-ui, sans-serif;   /* display face for headings */
+    --display: 'Sora', system-ui, sans-serif;
+    /* clinical green-grey surfaces; teal = brand / action, red = rising / problem, blue = falling, ink = sidebar */
+    --bg: #eef3f1; --panel: #f5f8f7; --surface: #ffffff; --hover: #f0f5f3; --chip: #e4ece9;
+    --border: #dbe5e1; --border-soft: #e8efec;
+    --text: #11211c; --text-2: #34473f; --text-3: #5d716a; --text-4: #8fa29b;
+    --ink: #0f2a23; --ink-hover: #1d4a3d; --accent: #0d7a5f; --accent-strong: #0a6650; --accent-on-ink: #6fe0b8;
+    --accent-soft: rgba(13,122,95,.10);
+    --up: #b4232f; --up-bg: #fbe1e3; --down: #1f6fb2; --down-bg: #ddeaf6;
+    --peach: #e6f3ee; --peach-border: #c4e3d6;
+    --series-0: #0d7a5f; --series-1: #1f6fb2; --series-2: #11211c;
+    --btn-bg: #0d7a5f; --btn-hover: #0a6650; --btn-fg: #ffffff;
+    --link: #0d7a5f; --bar: #0d7a5f; --bar-muted: #b9ded0;
+    --green: #1f8a4c; --red: #b4232f; --amber: #a96a00; --warn-text: #a96a00;
+    --ok-bg: #ddf3e5; --warn-bg: #fbefd6; --crit-bg: #fbe1e3;
+    --rail: #0f2a23; --rail-fg: #b9d3ca; --rail-active: #1d4a3d; --rail-strong: #ffffff;
+    --flash: rgba(13,122,95,.07);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --bg: #141311; --panel: #1a1917; --surface: #1e1d1b; --hover: #262522; --chip: #2a2926;
-      --border: #33312d; --border-soft: #282724;
-      --text: #f2f0eb; --text-2: #cfccc4; --text-3: #9d9990; --text-4: #6f6b64;
-      --ink: #f2f0eb; --ink-hover: #ffffff; --accent: #f08a52; --accent-strong: #f08a52; --accent-on-ink: #b9410f;
-      --accent-soft: rgba(240,138,82,.14);
-      --up: #f59a68; --up-bg: #3a2418; --down: #8fb0ff; --down-bg: #1b2742;
-      --peach: #2a201a; --peach-border: #4a3122;
-      --series-0: #f08a52; --series-1: #6f9bff; --series-2: #e8e5de;
-      --btn-bg: #f2f0eb; --btn-hover: #ffffff; --btn-fg: #141311;
-      --link: #f59a68; --bar: #f08a52; --bar-muted: #6b3a22;
-      --green: #4ade80; --red: #f08a52; --amber: #f5b13d; --warn-text: #f5b13d;
-      --flash: rgba(240,138,82,.10);
+      --bg: #0b1513; --panel: #0f1b18; --surface: #12201c; --hover: #172823; --chip: #1b2e28;
+      --border: #24382f; --border-soft: #1c2d27;
+      --text: #e3eeea; --text-2: #c0d2cb; --text-3: #8fa69e; --text-4: #627a72;
+      --ink: #e3eeea; --ink-hover: #ffffff; --accent: #3fc59a; --accent-strong: #5fd6ae; --accent-on-ink: #0d7a5f;
+      --accent-soft: rgba(63,197,154,.14);
+      --up: #ff7b84; --up-bg: #3d1519; --down: #7fb6ff; --down-bg: #15283f;
+      --peach: #163c31; --peach-border: #21503f;
+      --series-0: #3fc59a; --series-1: #7fb6ff; --series-2: #e3eeea;
+      --btn-bg: #3fc59a; --btn-hover: #5fd6ae; --btn-fg: #06261c;
+      --link: #5fd6ae; --bar: #3fc59a; --bar-muted: #1f4a3c;
+      --green: #5fd18f; --red: #ff7b84; --amber: #f0b54a; --warn-text: #f0b54a;
+      --ok-bg: #143322; --warn-bg: #3a2c10; --crit-bg: #3d1519;
+      --rail: #08100e; --rail-fg: #8fb0a4; --rail-active: #163c31; --rail-strong: #ffffff;
+      --flash: rgba(63,197,154,.10);
     }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
   body {
-    font: 400 var(--fs-md)/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01';
+    font: 400 var(--fs-md)/1.6 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   a { color: inherit; text-decoration: none; }
   code { background: var(--hover); padding: 1px 6px; border-radius: 4px; font-size: var(--fs-sm); }
@@ -323,20 +328,44 @@ BASE_CSS = """
   body { background: var(--bg); }
   .mono { font-family: var(--mono); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .topnav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 90%, transparent);
-            backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
-  .topnav-in { max-width: 1240px; margin: 0 auto; height: 60px; display: flex; align-items: center; gap: var(--s4); padding: 0 var(--s6); }
-  .brand2 { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; white-space: nowrap; }
-  .brand2 i { width: 26px; height: 26px; border-radius: 7px; background: var(--ink); color: var(--accent-on-ink); display: grid; place-items: center; }
-  .scope { font-family: var(--mono); font-size: 11px; color: var(--text-3); border: 1px solid var(--border); border-radius: 999px;
-           padding: 3px 10px; white-space: nowrap; }
-  .tabs { margin-left: auto; display: flex; gap: 2px; overflow-x: auto; }
-  .tabs a { padding: 7px 14px; border-radius: 8px; font-size: var(--fs-md); color: var(--text-2); white-space: nowrap; }
-  .tabs a:hover { background: var(--hover); color: var(--text); }
-  .tabs a.on { background: var(--chip); color: var(--text); font-weight: 500; }
-  .nav-right { display: flex; align-items: center; gap: var(--s2); }
+  /* sidebar shell: dark rail on the left, scrolling workspace on the right */
+  .shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+  .shell-main { min-width: 0; display: flex; flex-direction: column; }
+  .shell-main > .foot { margin-top: auto; }
+  .sb { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--rail); color: var(--rail-fg);
+        padding: 22px 14px; display: flex; flex-direction: column; gap: 22px; }
+  .sb-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; color: var(--rail-strong);
+              font-family: var(--display); font-weight: 700; font-size: 18px; }
+  .sb-brand i { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--btn-fg);
+                display: grid; place-items: center; }
+  .sb-nav { display: flex; flex-direction: column; gap: 2px; }
+  .sb-h { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; opacity: .6; padding: 14px 10px 6px; }
+  .sb-h:first-child { padding-top: 0; }
+  .sb-nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-weight: 500;
+              font-size: var(--fs-md); white-space: nowrap; }
+  .sb-nav a:hover, .sb-nav a.on { background: var(--rail-active); color: var(--rail-strong); }
+  .sb-nav a:focus-visible, .sb-brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sb-nav svg.i { width: 17px; height: 17px; }
+  .sb-nav .wcount { margin-left: auto; font-family: var(--mono); font-size: 11px; background: var(--red); color: #fff;
+                    border-radius: 99px; padding: 0 7px; }
+  .sb-card { margin-top: auto; border: 1px solid var(--rail-active); border-radius: 10px; padding: 12px; font-size: var(--fs-xs);
+             display: flex; flex-direction: column; gap: 8px; }
+  .sb-card b { color: var(--rail-strong); font-weight: 600; font-size: var(--fs-sm); }
+  .sb-card span { margin-top: -6px; }
+  .sb-card .btn { width: 100%; justify-content: center; height: 34px; }
+  .sb-card form { display: block; }
   .wpick select { font: inherit; font-size: var(--fs-sm); color: var(--text-2); background: var(--surface); border: 1px solid var(--border);
                   border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .sb-card .wpick select { width: 100%; background: var(--rail-active); color: var(--rail-strong); border-color: var(--rail-active); }
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: minmax(0, 1fr); }
+    .sb { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 12px;
+          padding: 10px 16px; overflow-x: auto; }
+    .sb-brand span, .sb-h, .sb-nav .t, .sb-card b, .sb-card span, .sb-card .wpick { display: none; }
+    .sb-nav { flex-direction: row; }
+    .sb-card { margin: 0 0 0 auto; padding: 0; border: 0; }
+    .sb-card .btn { width: auto; }
+  }
   .crumbs-row { max-width: 1180px; margin: var(--s5) auto 0; padding: 0 var(--s8); }
   .main, .app { display: block; }
   .content { padding-top: var(--s6); }
@@ -353,9 +382,10 @@ BASE_CSS = """
   .gen { font-size: 11px; color: var(--text-3); white-space: nowrap; }
   .fb-btns { display: flex; gap: var(--s2); }
   .btn { height: 38px; padding: 0 var(--s4); border-radius: 9px; font-size: var(--fs-md); }
-  .btn-primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-  .btn-primary:hover { background: var(--ink-hover); }
-  .topnav .btn { height: 34px; }
+  .btn-primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
+  .btn-primary:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h1, h2, h3, .fb-h1, .kpi .v { font-family: var(--display); }
 
   .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: var(--s6); }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; min-width: 0; }
@@ -369,6 +399,51 @@ BASE_CSS = """
   .chg { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; white-space: nowrap; letter-spacing: 0; }
   .chg.up { background: var(--up-bg); color: var(--up); } .chg.down { background: var(--down-bg); color: var(--down); }
   .chg.flat { background: var(--chip); color: var(--text-3); }
+
+  /* ---------- dashboard: sparklines, baseline chart, radar + opportunities panels ---------- */
+  .kpi { display: flex; flex-direction: column; }
+  .kspark { width: 100%; height: 34px; margin-top: 10px; display: block; }
+  .kspark polygon { fill: var(--accent-soft); } .kspark circle { fill: var(--accent); }
+  .kspark polyline { fill: none; stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+  .kpi-link { margin-top: auto; padding-top: 12px; font-size: var(--fs-xs); font-weight: 600; color: var(--accent-on-ink); }
+  .dx-search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border);
+               border-radius: 10px; padding: 0 10px; height: 38px; min-width: 0; width: 280px; max-width: 100%; color: var(--text-3); }
+  .dx-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .dx-search input { all: unset; flex: 1; min-width: 0; font-size: var(--fs-sm); color: var(--text); }
+  .dx-search kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+  .dx-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .legend .lg.base i { background: var(--text-3); opacity: .6; }
+  .dx-chart svg .area { fill: var(--accent-soft); }
+  .dx-chart svg .total { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; }
+  .dx-chart svg .baseline { fill: none; stroke: var(--text-3); stroke-width: 1.6; stroke-dasharray: 4 4; opacity: .7; }
+  .dx-chart svg .end { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .dx-chart svg .dl { fill: var(--text); font-size: 12px; font-weight: 600; }
+  .dx-ai { background: linear-gradient(180deg, var(--accent-soft), var(--surface) 55%); }
+  .dx-ai-t { display: flex; align-items: center; gap: 8px; }
+  .dx-tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; background: var(--accent); color: var(--btn-fg);
+            padding: 2px 7px; border-radius: 5px; }
+  .dx-sigs, .dx-opps { display: flex; flex-direction: column; gap: 10px; margin-top: var(--s4); }
+  .dx-sig { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .dx-sig-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .dx-sig-h b { font-weight: 600; }
+  .dx-sig p { margin: 6px 0 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5; }
+  .dx-sig p.dx-next { color: var(--text-3); font-size: var(--fs-xs); }
+  .dx-sig-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .dx-ev { font-family: var(--mono); font-size: 11.5px; }
+  .dx-ev.e-ok { color: var(--green); } .dx-ev.e-warn { color: var(--warn-text); } .dx-ev.e-crit { color: var(--red); }
+  .dx-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; padding: 3px 9px;
+             border-radius: 99px; white-space: nowrap; flex: none; }
+  .dx-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .p-ok { background: var(--ok-bg); color: var(--green); } .p-warn { background: var(--warn-bg); color: var(--warn-text); }
+  .p-crit { background: var(--crit-bg); color: var(--red); }
+  .dx-opps { gap: 0; }
+  .dx-opp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 6px;
+            border-bottom: 1px solid var(--border-soft); border-radius: 8px; }
+  .dx-opp:last-child { border-bottom: 0; } .dx-opp:hover { background: var(--hover); }
+  .dx-score { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+              display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 13px; }
+  .dx-opp-m b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dx-opp-m small { display: block; color: var(--text-3); font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .row2 { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; min-width: 0; }
@@ -738,6 +813,10 @@ _ICONS = {
     "zap": '<path d="M9 1.5L3 9h5l-1 5.5L13 7H8z"/>',
     "search": '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
     "clock": '<circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/>',
+    "grid": '<rect x="2" y="2" width="5" height="6" rx="1"/><rect x="9" y="2" width="5" height="3.5" rx="1"/>'
+            '<rect x="9" y="7.5" width="5" height="6.5" rx="1"/><rect x="2" y="10" width="5" height="4" rx="1"/>',
+    "wrench": '<path d="M9.8 4.2a2.8 2.8 0 00-3.7 3.7L2 12l2 2 4.1-4.1a2.8 2.8 0 003.7-3.7L10 8 8 6z"/>',
+    "eye": '<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>',
 }
 
 
@@ -884,18 +963,22 @@ def _share():
 def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions: str = "",
           history: list[dict] | None = None, current_week: str | None = None, script: str = "",
           hide_run: bool = False) -> str:
-    tabs = [("/", "This week", "brief"), ("/recent", "Recently viewed", "recent"), ("/radar", "Radar", "radar"),
-            ("/opportunities", "Opportunities", "opps"), ("/building", "Building Now", "building"),
-            ("/pain-points", "Pain points", "points"),
-            ("/watchlist", "Sumit’s watchlist", "watch")]
-    more = [("/unresolved", "Unresolved threads", "unresolved"), ("/evidence", "Data quality", "quality"),
-            ("/topics", "Keywords", "topics"), ("/reports", "Shared reports", "reports"),
-            ("/health", "System health", "health")]
-    nav = "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}'
-                  + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>" for href, label, key in tabs)
-    nav += (f'<details class="more-menu"><summary class="{"on" if active in {k for _, _, k in more} else ""}">More</summary>'
-            f'<div class="mm">' + "".join(f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
-                                         for href, label, key in more) + "</div></details>")
+    groups = [
+        ("Research", [("/", "This week", "brief", "grid"), ("/radar", "Radar", "radar", "target"),
+                      ("/opportunities", "Opportunities", "opps", "zap"), ("/pain-points", "Pain points", "points", "flame"),
+                      ("/building", "Building Now", "building", "wrench")]),
+        ("Workspace", [("/watchlist", "Sumit’s watchlist", "watch", "eye"), ("/recent", "Recently viewed", "recent", "clock"),
+                       ("/unresolved", "Unresolved threads", "unresolved", "tag"), ("/reports", "Shared reports", "reports", "doc")]),
+        ("Settings", [("/topics", "Keywords", "topics", "search"), ("/evidence", "Data quality", "quality", "check"),
+                      ("/health", "System health", "health", "shield")]),
+    ]
+    nav = "".join(
+        f'<small class="sb-h">{group}</small>'
+        + "".join(f'<a href="{href}" class="{"on" if active == key else ""}"'
+                  f'{" aria-current=page" if active == key else ""}>{_icon(icon)}<span class="t">{label}</span>'
+                  + ('<span class="wcount" hidden></span>' if key == "watch" else "") + "</a>"
+                  for href, label, key, icon in items)
+        for group, items in groups)
     weeks = "".join(
         f'<option value="/history/{escape(h["week_start"])}"{" selected" if h["week_start"] == current_week else ""}>'
         f'Week {_week_no(h["week_start"])}{" · latest" if i == 0 else ""}</option>'
@@ -908,21 +991,26 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{escape(title if title.endswith("DevvIT") else f"{title} · DevvIT")}</title>
 <meta name="description" content="DevvIT turns public developer discussions from Hacker News, Stack Overflow and GitHub into weekly product intelligence: pain points, trends and opportunities.">
-<meta name="theme-color" content="#18181b">
+<meta name="theme-color" content="#0f2a23">
 <link rel="icon" type="image/svg+xml" href="{FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 {BASE_CSS}
 <style>{_share().SHARE_CSS}</style>
 </head><body>
-<header class="topnav"><div class="topnav-in">
-  <a class="brand2" href="/"><i>{_icon("pulse")}</i>DevvIT</a>
-  <nav class="tabs">{nav}</nav>
-  <div class="nav-right">{picker}{"" if hide_run else RUN_BUTTON}</div>
-</div></header>
+<div class="shell">
+<aside class="sb">
+  <a class="sb-brand" href="/"><i>{_icon("pulse")}</i><span>DevvIT</span></a>
+  <nav class="sb-nav" aria-label="Main">{nav}</nav>
+  <div class="sb-card"><b>Next brief</b><span>{escape(_next_run_label())}</span>
+    {picker}{"" if hide_run else RUN_BUTTON}</div>
+</aside>
+<div class="shell-main">
 {crumb_row}
 {body}
 <footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
+</div>
+</div>
 {RUN_OVERLAY}
 {DEVI_WIDGET}
 {_share().SHARE_WIDGET}
@@ -1255,7 +1343,95 @@ def _line_chart(weeks: list[str], series: list[tuple[str, list[int]]]) -> str:
             f'aria-label="Mentions per week for the top pain points">{"".join(out)}</svg><div class="tip" hidden></div></div>')
 
 
-def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> str:
+def _kspark(vals: list[int]) -> str:
+    """KPI tile sparkline: area + line + emphasised endpoint, scaled to its own min/max."""
+    if len(vals) < 2:
+        return '<svg class="kspark" viewBox="0 0 100 34" aria-hidden="true"></svg>'
+    lo, hi = min(vals), max(vals)
+    pts = [(i * 100 / (len(vals) - 1), 30 - (v - lo) / ((hi - lo) or 1) * 26) for i, v in enumerate(vals)]
+    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    return (f'<svg class="kspark" viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true">'
+            f'<polygon points="0,34 {line} 100,34"/><polyline points="{line}"/>'
+            f'<circle cx="{pts[-1][0]:.1f}" cy="{pts[-1][1]:.1f}" r="2.4"/></svg>')
+
+
+def _baseline_chart(weeks: list[str], totals: list[int]) -> str:
+    """Weekly mentions (solid, filled) against the average of up to 4 earlier weeks (dashed)."""
+    w, h, left, right, top, bottom = 640, 230, 36, 14, 14, 28
+    n = len(weeks)
+    base = [None if i == 0 else sum(totals[max(0, i - 4):i]) / len(totals[max(0, i - 4):i]) for i in range(n)]
+    peak = max(totals + [b for b in base if b is not None] + [4])
+    step = max(1, -(-int(peak) // 4))
+    y_max = step * 4
+    x = lambda i: left + ((w - left - right) * i / (n - 1) if n > 1 else (w - left - right) / 2)
+    y = lambda v: top + (h - top - bottom) * (1 - v / y_max)
+    out = [f'<line class="grid" x1="{left}" x2="{w - right}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+           f'<text class="ax" x="{left - 8}" y="{y(v) + 4:.1f}" text-anchor="end">{v}</text>' for v in range(0, y_max + 1, step)]
+    out += [f'<text class="ax" x="{x(i):.1f}" y="{h - 8}" text-anchor="middle">W{_week_no(wk)}</text>' for i, wk in enumerate(weeks)]
+    line = " ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(totals))
+    if n > 1:
+        out.append(f'<polygon class="area" points="{x(0):.1f},{y(0):.1f} {line} {x(n - 1):.1f},{y(0):.1f}"/>')
+        bl = " ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(base) if v is not None)
+        if bl.count(",") > 1:
+            out.append(f'<polyline class="baseline" points="{bl}"/>')
+        out.append(f'<polyline class="total" points="{line}"/>')
+    out.append(f'<circle class="end" cx="{x(n - 1):.1f}" cy="{y(totals[-1]):.1f}" r="4.5"/>'
+               f'<text class="dl" x="{x(n - 1) - 8:.1f}" y="{y(totals[-1]) - 10:.1f}" text-anchor="end">{totals[-1]} this week</text>')
+    return (f'<div class="chart dx-chart"><svg viewBox="0 0 {w} {h}" role="img" '
+            f'aria-label="Pain-point mentions per week compared with the average of the previous four weeks">{"".join(out)}</svg></div>')
+
+
+_RADAR_KIND = {"new": ("New", "warn"), "rising": ("Rising", "crit"), "returning": ("Back again", "warn"),
+               "baseline_pending": ("No baseline yet", "ok")}
+_EVIDENCE = {"Strong": "ok", "Moderate": "warn", "Thin": "crit"}
+
+
+def _radar_panel(findings: list[dict]) -> str:
+    live = [f for f in findings if f.get("status") != "dismissed"][:3]
+    if not live:
+        items = ('<p class="sub">Nothing is rising, new or back this week. Radar compares each theme with its '
+                 'average over the previous four briefs.</p>')
+    else:
+        items = ""
+        for f in live:
+            kind, tone = _RADAR_KIND.get(f["kind"], (f["kind"], "ok"))
+            ev = f["evidence"]["level"]
+            items += (f'<article class="dx-sig"><div class="dx-sig-h"><b>{escape(_nice(f["label"]))}</b>'
+                      f'<span class="dx-pill p-{tone}">{kind}</span></div>'
+                      f'<p>{escape(f["reason"])}</p><p class="dx-next">{escape(f["next_step"])}</p>'
+                      f'<div class="dx-sig-f"><span class="dx-ev e-{_EVIDENCE.get(ev, "warn")}">{escape(ev)} evidence · '
+                      f'{f["unique_threads"]} threads</span>{_watch_btn(f["label"], f["current"])}</div></article>')
+    return (f'<div class="panel dx-ai"><div class="panel-h"><div class="dx-ai-t"><span class="dx-tag">AI</span><h2>Radar</h2></div>'
+            f'<a class="more" style="margin:0" href="/radar">Open radar →</a></div><div class="dx-sigs">{items}</div></div>')
+
+
+_OPP_TONE = {"Investigating": "warn", "Validating": "warn", "Prioritized": "ok", "In progress": "ok", "Dismissed": "crit"}
+
+
+def _opps_panel(rows: list[dict]) -> str:
+    top = [r for r in rows if r.get("status") != "Dismissed"][:5]
+    if not top:
+        items = '<p class="sub">Opportunities are scored once a brief has pain points.</p>'
+    else:
+        items = ""
+        for r in top:
+            f = r["factors"]
+            facts = " · ".join(f"{label} {f[k]:.2f}" for k, label in
+                               (("frequency", "Frequency"), ("growth", "Growth"), ("unresolved", "Unresolved"))
+                               if f.get(k) is not None)
+            status = r.get("status") or "New"
+            score = "—" if r["score"] is None else f'{r["score"]:.0f}'
+            items += (f'<a class="dx-opp" href="/opportunity?name={quote(r["name"])}">'
+                      f'<span class="dx-score" title="Opportunity score, 0–100">{score}</span>'
+                      f'<span class="dx-opp-m"><b>{escape(_nice(r["name"]))}</b>'
+                      f'<small>{escape(facts)} · {len(f.get("_sources") or [])} sources</small></span>'
+                      f'<span class="dx-pill p-{_OPP_TONE.get(status, "ok")}">{escape(status)}</span></a>')
+    return (f'<div class="panel"><div class="panel-h"><div><h2>Top opportunities</h2>'
+            f'<p class="sub">Ranked by opportunity score. Discussion volume is not proof of demand.</p></div>'
+            f'<a class="more" style="margin:0" href="/opportunities">All →</a></div><div class="dx-opps">{items}</div></div>')
+
+
+def dashboard(b: dict | None, history: list[dict], flash: str | None = None, intel: dict | None = None) -> str:
     """The Friday Brief: headline, numbers, sprint plan, ranked pain points, trends, sources, unresolved threads."""
     if not b:
         body = f"""<main class="fb">{_flash(flash)}
@@ -1303,12 +1479,29 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
         trend_v, trend_s = "—", "Needs two weekly briefs to compare"
         ment_s, pts_s = "First week tracked", "First week tracked"
     unresolved = _unresolved(posts)
+    # weekly shapes for the KPI sparklines, from the same weekly_metrics rows as the table
+    weeks, series = b["weeks"], b["series"]
+    totals_w = [sum(s.get(wk, 0) for s in series.values()) for wk in weeks]
+    points_w = [sum(1 for s in series.values() if s.get(wk)) for wk in weeks]
+    rising_w = [0] + [sum(1 for s in series.values() if s.get(wk, 0) > s.get(weeks[i - 1], 0))
+                      for i, wk in enumerate(weeks) if i]
     kpis = f"""
 <section class="kpis">
-  <div class="kpi"><div class="l">Pain points tracked</div><div class="v">{len(metrics)} <small>{len({m.get('category') for m in metrics})} categories</small></div><div class="s">{pts_s}</div></div>
-  <div class="kpi"><div class="l">Pain-point mentions</div><div class="v">{total} {_chg(total, prev_total) if prev_total else ''}</div><div class="s">{ment_s}</div></div>
-  <div class="kpi"><div class="l">Topics trending up</div><div class="v">{trend_v}</div><div class="s">{trend_s}</div></div>
-  <div class="kpi dark"><div class="l">Unresolved threads</div><div class="v">{len(unresolved)} <small class="mono">opportunities</small></div><div class="s">No accepted answer or fix yet</div></div>
+  <div class="kpi"><div class="l">Pain-point mentions</div><div class="v">{total} {_chg(total, prev_total) if prev_total else ''}</div><div class="s">{ment_s}</div>{_kspark(totals_w)}</div>
+  <div class="kpi"><div class="l">Pain points tracked</div><div class="v">{len(metrics)} <small>{len({m.get('category') for m in metrics})} categories</small></div><div class="s">{pts_s}</div>{_kspark(points_w)}</div>
+  <div class="kpi"><div class="l">Topics trending up</div><div class="v">{trend_v}</div><div class="s">{trend_s}</div>{_kspark(rising_w)}</div>
+  <div class="kpi dark"><div class="l">Unresolved threads</div><div class="v">{len(unresolved)} <small class="mono">opportunities</small></div><div class="s">No accepted answer or fix yet</div>
+    <a class="kpi-link" href="/unresolved?week={escape(week)}">Review threads →</a></div>
+</section>"""
+    intel = intel or {}
+    signal_row = f"""
+<section class="row2">
+  <div class="panel"><div class="panel-h"><div><h2>Mentions vs. baseline</h2>
+    <p class="sub">Pain-point mentions per weekly brief, against the average of up to four earlier weeks.</p></div></div>
+    <div class="legend"><span class="lg s0"><i></i>Mentions</span><span class="lg base"><i></i>4-week baseline</span></div>
+    {_baseline_chart(weeks, totals_w)}
+    {'<p class="sub" style="margin-top:8px">Only one weekly brief so far: the baseline appears from the second Friday run.</p>' if len(weeks) < 2 else ''}</div>
+  {_radar_panel(intel.get("radar") or [])}
 </section>"""
 
     # ---- sprint plan + biggest opportunity ----
@@ -1348,28 +1541,36 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
 </section>"""
 
     # ---- ranked table ----
-    weeks = b["weeks"]
     rows = ""
     for i, m in enumerate(metrics[:7], 1):
         name, n = m["pain_point"], m["mention_count"]
         last = prev.get(name, 0) if prev is not None else None
         vals = [b["series"].get(name, {}).get(wk, 0) for wk in weeks]
         href = _point_href(name, week)
-        rows += (f'<tr data-href="{href}" data-vol="{n}" data-grow="{n - (last or 0)}">'
+        flags = {"rising": int(bool(last) and n > last), "new": int(prev is not None and not last),
+                 "open": int((m.get("unresolved_count") or 0) > 0)}
+        rows += (f'<tr data-href="{href}" data-vol="{n}" data-grow="{n - (last or 0)}" data-name="{escape(_nice(name).lower())}" '
+                 + " ".join(f'data-{k}="{v}"' for k, v in flags.items()) + '>'
                  f'<td class="idx">{i:02d}</td>'
                  f'<td class="tn"><a href="{href}"><b>{escape(_nice(name))}</b></a><small>{escape(m.get("category") or "Other")}</small></td>'
                  f'<td class="num cur">{n}</td><td class="num">{"—" if last is None else last}</td>'
                  f'<td>{_chg(n, last)}</td><td>{_spark(vals) if len(weeks) > 1 else chr(8212)}</td>'
                  f'<td>{_cov(n, m.get("unresolved_count") or 0)}</td><td class="acts">{_watch_btn(name, n)}{_share().share_btn("pain_point", name)}</td></tr>')
     ranked = f"""
-<section class="panel" style="margin-top:14px">
+<section class="row2">
+<div class="panel">
   <div class="panel-h"><div><h2>Pain points, ranked</h2>
     <p class="sub">Mentions this week vs the previous brief, with {f'the shape of the last {len(weeks)} weeks' if len(weeks) > 1 else 'trend lines once a second brief exists'}. Click a row for its history and threads.</p></div>
-    <div class="seg" role="group" aria-label="Sort"><button class="on" data-k="vol">By volume</button><button data-k="grow">By growth</button></div></div>
+    <div class="dx-tools">
+      <div class="seg" id="rank-filter" role="group" aria-label="Filter"><button class="on" data-f="all">All</button><button data-f="rising">Rising</button><button data-f="new">New</button><button data-f="open">Unresolved</button></div>
+      <div class="seg" id="rank-sort" role="group" aria-label="Sort"><button class="on" data-k="vol">By volume</button><button data-k="grow">By growth</button></div></div></div>
   <div class="rank-wrap"><table class="rank" id="rank">
     <thead><tr><th>#</th><th>Topic · category</th><th class="num">This wk</th><th class="num">Last wk</th><th>Change</th><th>{f"{len(weeks)} wk" if len(weeks) > 1 else "Trend"}</th><th>Status</th><th></th></tr></thead>
-    <tbody>{rows}</tbody></table></div>
+    <tbody>{rows}</tbody></table>
+    <p class="sub" id="rank-empty" hidden>No pain points in the top 7 match. Clear the search or pick another filter.</p></div>
   <a class="more" href="{base}/pain-points">View all {len(metrics)} pain points →</a>
+</div>
+{_opps_panel(intel.get("opps") or [])}
 </section>"""
 
     # ---- trend chart + sources ----
@@ -1420,11 +1621,12 @@ def dashboard(b: dict | None, history: list[dict], flash: str | None = None) -> 
     <div><div class="fb-eyebrow">Friday brief · Week {_week_no(week)} · {period}</div>
       <h1 class="fb-h1">{escape(heading)}</h1><p class="fb-sub">{escape(sub)}</p></div>
     <div class="fb-actions"><div class="mono gen">Generated {escape(_ist_label(b.get("created_at")))}</div>
+      <label class="dx-search" for="dx-q">{_icon("search")}<input id="dx-q" type="search" placeholder="Filter pain points" autocomplete="off"><kbd>/</kbd></label>
       <div class="fb-btns">{compare}{_share().share_btn("weekly", week, "Share report")}{RUN_BUTTON}</div></div>
   </header>
   {kpis}
   <section class="wstrip" id="wstrip" hidden></section>
-  {plan_row}{ranked}{trends}{unres}{kw}
+  {signal_row}{ranked}{plan_row}{trends}{unres}{kw}
 </main>"""
     return _page(f"Week {_week_no(week)} · Friday brief", body, active="brief" if is_latest else "",
                  history=history, current_week=week, script=CLEAR_RUN_JS + RANK_JS + CHART_JS + STRIP_JS, hide_run=True)
@@ -1435,10 +1637,31 @@ RANK_JS = """<script>
   const t = document.getElementById('rank'); if (!t) return;
   const body = t.tBodies[0];
   body.querySelectorAll('tr').forEach(r => r.addEventListener('click', e => { if (!e.target.closest('a,button,input,label')) location.href = r.dataset.href; }));
-  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('#rank-sort button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#rank-sort button').forEach(x => x.classList.toggle('on', x === b));
     [...body.rows].sort((a, c) => c.dataset[b.dataset.k] - a.dataset[b.dataset.k]).forEach(r => body.appendChild(r));
   }));
+  // filter chips (All / Rising / New / Unresolved) and the header search narrow the same rows
+  let state = 'all';
+  const q = document.getElementById('dx-q'), empty = document.getElementById('rank-empty');
+  const apply = () => {
+    const term = (q && q.value || '').trim().toLowerCase(); let shown = 0;
+    [...body.rows].forEach(r => {
+      const ok = (state === 'all' || r.dataset[state] === '1') && (!term || r.dataset.name.includes(term));
+      r.hidden = !ok; shown += ok;
+    });
+    if (empty) empty.hidden = shown > 0;
+  };
+  document.querySelectorAll('#rank-filter button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#rank-filter button').forEach(x => x.classList.toggle('on', x === b));
+    state = b.dataset.f; apply();
+  }));
+  if (q) {
+    q.addEventListener('input', apply);
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && !e.target.closest('input,textarea,select')) { e.preventDefault(); q.focus(); }
+    });
+  }
 })();
 </script>"""
 
