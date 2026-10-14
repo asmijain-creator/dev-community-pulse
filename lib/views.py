@@ -944,7 +944,7 @@ LOADER = f"""
   document.addEventListener('submit', e => {{ if (e.target.matches('[data-run],[data-brefresh]')) skip = true; }}, true);
   addEventListener('beforeunload', show);
   addEventListener('pageshow', hide);                      // includes coming back via the back button
-})();
+}})();
 </script>"""
 
 
