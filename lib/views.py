@@ -12,7 +12,6 @@ IST = timezone(timedelta(hours=5, minutes=30))
 BASE_CSS = """
 <style>
   :root {
-    color-scheme: light;
     /* type scale */
     --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
     /* spacing scale (4px grid) */
@@ -21,43 +20,27 @@ BASE_CSS = """
     --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
     --serif: 'Sora', system-ui, sans-serif;   /* display face for headings */
     --display: 'Sora', system-ui, sans-serif;
-    /* clinical green-grey surfaces; teal = brand / action, red = rising / problem, blue = falling, ink = sidebar */
-    --bg: #eef3f1; --panel: #f5f8f7; --surface: #ffffff; --hover: #f0f5f3; --chip: #e4ece9;
-    --border: #dbe5e1; --border-soft: #e8efec;
-    --text: #11211c; --text-2: #34473f; --text-3: #5d716a; --text-4: #8fa29b;
-    --ink: #0f2a23; --ink-hover: #1d4a3d; --accent: #0d7a5f; --accent-strong: #0a6650; --accent-on-ink: #6fe0b8;
-    --accent-soft: rgba(13,122,95,.10);
-    --up: #b4232f; --up-bg: #fbe1e3; --down: #1f6fb2; --down-bg: #ddeaf6;
-    --peach: #e6f3ee; --peach-border: #c4e3d6;
-    --series-0: #0d7a5f; --series-1: #1f6fb2; --series-2: #11211c;
-    --btn-bg: #0d7a5f; --btn-hover: #0a6650; --btn-fg: #ffffff;
-    --link: #0d7a5f; --bar: #0d7a5f; --bar-muted: #b9ded0;
-    --green: #1f8a4c; --red: #b4232f; --amber: #a96a00; --warn-text: #a96a00;
-    --ok-bg: #ddf3e5; --warn-bg: #fbefd6; --crit-bg: #fbe1e3;
-    --rail: #0f2a23; --rail-fg: #b9d3ca; --rail-active: #1d4a3d; --rail-strong: #ffffff;
-    --flash: rgba(13,122,95,.07);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
-      --bg: #0b1513; --panel: #0f1b18; --surface: #12201c; --hover: #172823; --chip: #1b2e28;
-      --border: #24382f; --border-soft: #1c2d27;
-      --text: #e3eeea; --text-2: #c0d2cb; --text-3: #8fa69e; --text-4: #627a72;
-      --ink: #e3eeea; --ink-hover: #ffffff; --accent: #3fc59a; --accent-strong: #5fd6ae; --accent-on-ink: #0d7a5f;
-      --accent-soft: rgba(63,197,154,.14);
-      --up: #ff7b84; --up-bg: #3d1519; --down: #7fb6ff; --down-bg: #15283f;
-      --peach: #163c31; --peach-border: #21503f;
-      --series-0: #3fc59a; --series-1: #7fb6ff; --series-2: #e3eeea;
-      --btn-bg: #3fc59a; --btn-hover: #5fd6ae; --btn-fg: #06261c;
-      --link: #5fd6ae; --bar: #3fc59a; --bar-muted: #1f4a3c;
-      --green: #5fd18f; --red: #ff7b84; --amber: #f0b54a; --warn-text: #f0b54a;
-      --ok-bg: #143322; --warn-bg: #3a2c10; --crit-bg: #3d1519;
-      --rail: #08100e; --rail-fg: #8fb0a4; --rail-active: #163c31; --rail-strong: #ffffff;
-      --flash: rgba(63,197,154,.10);
-    }
+    /* runtime console: one deliberate dark world in every OS theme.
+       cyan = live / action, red = rising / problem, violet = falling, amber = warning, ink = inverted emphasis */
+    --bg: #0a0e13; --panel: #0e141b; --surface: #111922; --hover: #16212c; --chip: #1a2633;
+    --border: #223142; --border-soft: #19242f; --grid: rgba(140,170,200,.05);
+    --text: #e6edf3; --text-2: #b8c4d0; --text-3: #8492a3; --text-4: #5b6878;
+    --ink: #e6edf3; --ink-hover: #ffffff; --accent: #3ddcff; --accent-strong: #7ae7ff; --accent-on-ink: #0a6c85;
+    --accent-soft: rgba(61,220,255,.12);
+    --up: #ff6b7a; --up-bg: #3a1620; --down: #a78bfa; --down-bg: #241c3d;
+    --peach: #102a33; --peach-border: #1b4251;
+    --series-0: #3ddcff; --series-1: #a78bfa; --series-2: #e6edf3;
+    --btn-bg: #3ddcff; --btn-hover: #7ae7ff; --btn-fg: #04151b;
+    --link: #7ae7ff; --bar: #3ddcff; --bar-muted: #164150;
+    --green: #4ade80; --red: #ff6b7a; --amber: #fbbf24; --warn-text: #fbbf24;
+    --ok-bg: #11301f; --warn-bg: #33270b; --crit-bg: #3a1620;
+    --rail: #070a0e; --rail-fg: #8a98a8; --rail-active: #142230; --rail-strong: #ffffff;
+    --flash: rgba(61,220,255,.08);
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { background-image: radial-gradient(var(--grid) 1px, transparent 1px); background-size: 22px 22px; }
   body {
     font: 400 var(--fs-md)/1.6 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -325,7 +308,7 @@ BASE_CSS = """
   @media (max-width: 860px) { .sgrid { grid-template-columns: minmax(0, 1fr); } .pn small { display: none; } }
 
   /* ================= Friday Brief ================= */
-  body { background: var(--bg); }
+  body { background-color: var(--bg); }
   .mono { font-family: var(--mono); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   /* sidebar shell: dark rail on the left, scrolling workspace on the right */
@@ -992,7 +975,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{escape(title if title.endswith("DevvIT") else f"{title} · DevvIT")}</title>
 <meta name="description" content="DevvIT turns public developer discussions from Hacker News, Stack Overflow and GitHub into weekly product intelligence: pain points, trends and opportunities.">
-<meta name="theme-color" content="#0f2a23">
+<meta name="theme-color" content="#070a0e">
 <link rel="icon" type="image/svg+xml" href="{FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1009,7 +992,7 @@ def _page(title: str, body: str, *, active: str = "", crumbs: str = "", actions:
 <div class="shell-main">
 {crumb_row}
 {body}
-<footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><a href="/health">System health</a></footer>
+<footer class="foot"><span>DevvIT · new brief every Friday, 8:30 AM IST</span><span><a href="/welcome">About DevvIT</a> · <a href="/health">System health</a></span></footer>
 </div>
 </div>
 {RUN_OVERLAY}
@@ -1143,8 +1126,8 @@ def _watch_btn(name: str, n: int = 0) -> str:
 
 # The nav logo as a favicon: ink rounded square with the rust pulse line. Works on light and dark tab bars.
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
-           "%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E"
-           "%3Cpath d='M5 16h6l4-9 6 18 4-9h2' fill='none' stroke='%23f0a06c' stroke-width='2.6' "
+           "%3Crect width='32' height='32' rx='8' fill='%23070a0e'/%3E"
+           "%3Cpath d='M5 16h6l4-9 6 18 4-9h2' fill='none' stroke='%233ddcff' stroke-width='2.6' "
            "stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
 
 RUN_BUTTON = (
