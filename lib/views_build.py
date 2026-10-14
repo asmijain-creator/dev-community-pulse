@@ -252,6 +252,8 @@ def _coverage(d: dict, items: list[dict]) -> str:
             issues.append(f'{label}: {st["failed"]} of {st.get("requests", st["failed"])} requests failed')
     if (last.get("producthunt") or {}).get("skipped"):
         issues.append("Product Hunt skipped: PRODUCT_HUNT_TOKEN is not set")
+    if last.get("first_error"):
+        issues.append("first AI error: " + str(last["first_error"])[:200])
     if last.get("failed_batches"):
         issues.append(f'{last["failed_batches"]} AI batch{"es" if last["failed_batches"] != 1 else ""} failed')
     if last.get("rate_limited"):

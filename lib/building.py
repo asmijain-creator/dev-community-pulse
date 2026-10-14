@@ -83,6 +83,8 @@ def validate(c: dict, post: dict, model: str) -> tuple[dict, list[dict], list[di
     conf = c.get("confidence")
     conf = max(0.0, min(1.0, float(conf))) if isinstance(conf, (int, float)) else None
     reason = (c.get("exclusion_reason") or "").strip().lower() or None
+    if reason == "none":                 # the schema's "no exclusion" value (Gemini rejects an empty enum value)
+        reason = None
     relevant = bool(c.get("is_build_activity")) and reason not in {"advertisement", "job_post"}
     if relevant and (conf is None or conf < MIN_CONFIDENCE):
         relevant, reason = False, "low_confidence"
